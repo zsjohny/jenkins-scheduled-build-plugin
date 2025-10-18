@@ -19,14 +19,26 @@
 - **Java**: 11 或更高版本
 - **插件依赖**: 无额外依赖，使用Jenkins自带核心插件
 
-### 为什么需要 Jenkins 2.401.3+？
+### 技术实现
 
-Jenkins 2.401.3 LTS（2023年8月）是支持**完整扩展点自动发现机制**的最低稳定版本：
-- ✅ 自动加载 `META-INF/services/hudson.Extension` 索引
-- ✅ 无需任何初始化脚本或额外配置
-- ✅ 标准的 Jenkins 插件部署流程
+本插件使用 **双重注册机制** 确保在所有 Jenkins 版本中都能正常工作：
 
-详细的版本要求说明请参考 [VERSION_REQUIREMENTS.md](VERSION_REQUIREMENTS.md)
+1. **扩展点索引文件** (`META-INF/services/hudson.Extension`)
+   - Jenkins 2.401.3+ 支持自动读取
+
+2. **插件初始化器** (`PluginImpl.java`)
+   - 使用 `@Initializer` 注解在插件加载时自动注册扩展点
+   - 检测索引文件是否已被读取，如未读取则手动注册
+   - **无需任何外部 Groovy 脚本**
+   - 纯 Java 实现，标准 Jenkins 插件机制
+
+这种设计确保：
+- ✅ 在支持扩展点索引的新版本 Jenkins 中自动注册
+- ✅ 在不支持的旧版本中通过 Initializer 注册
+- ✅ 标准的 Jenkins 插件部署流程，无需额外配置
+- ✅ 开箱即用，安装后立即可用
+
+详细的技术实现说明请参考 [VERSION_REQUIREMENTS.md](VERSION_REQUIREMENTS.md)
 
 ## 构建插件
 

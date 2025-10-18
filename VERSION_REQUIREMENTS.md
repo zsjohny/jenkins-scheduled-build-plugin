@@ -12,36 +12,58 @@
 
 ### 技术原因
 
-**2.401.3 LTS（2023年8月发布）是支持完整扩展点自动发现机制的最低稳定版本：**
+**2.401.3 LTS（2023年8月发布）是推荐的最低版本：**
 
-1. **扩展点索引自动加载**
-   - Jenkins 2.401.x 系列完全支持 `META-INF/services/hudson.Extension` 索引文件
-   - 插件的 `@Extension` 注解类能够被 Jenkins 自动发现和注册
-   - 无需任何额外的初始化脚本或配置
-
-2. **改进的插件类加载器**
-   - 2.401.x 引入了改进的插件类加载机制
+1. **现代化的插件架构**
+   - 改进的插件类加载机制
    - 更好的类隔离和依赖管理
    - 支持 `<pluginFirstClassLoader>true</pluginFirstClassLoader>` 配置
+
+2. **双重注册机制**
+   本插件采用**双重注册机制**确保在所有版本中都能正常工作：
+   
+   **方式 1：扩展点索引文件**
+   - 文件路径：`META-INF/services/hudson.Extension`
+   - Jenkins 2.401.3+ 原生支持自动读取
+   - 更老的版本可能不支持
+
+   **方式 2：插件初始化器（主要方式）**
+   ```java
+   @Initializer(after = InitMilestone.JOB_LOADED)
+   public static void registerExtensions() {
+       // 检测扩展点是否已自动注册
+       // 如未注册则手动注册
+   }
+   ```
+   - 使用 Jenkins 标准的 `Plugin` 类和 `@Initializer` 注解
+   - 在插件加载时自动执行
+   - **无需任何外部 Groovy 脚本**
+   - 纯 Java 实现，是 Jenkins 插件的标准机制
 
 3. **稳定的 LTS 版本**
    - 作为 LTS（长期支持）版本，经过充分测试
    - 有良好的社区支持和安全更新
    - 在生产环境中被广泛使用
 
-### 旧版本的限制
+### 旧版本的情况
 
-#### Jenkins 2.346.3 及更早版本（不推荐）
+#### Jenkins 2.346.3 及更早版本
 
-**问题：**
-- `META-INF/services/hudson.Extension` 索引文件存在但不会被自动读取
-- `TransientActionFactory` 等扩展点需要手动注册
-- 需要额外的初始化脚本（Groovy init script）来手动注册扩展点
+**现状：**
+- `META-INF/services/hudson.Extension` 索引文件可能不会被自动读取
+- 扩展点索引机制在某些版本中不稳定
 
-**影响：**
-- 增加部署复杂度
-- 需要维护额外的初始化脚本
-- 可能出现扩展点加载时序问题
+**解决方案：**
+- 本插件使用 `PluginImpl` 类的 `@Initializer` 方法
+- 在插件加载时自动检测并注册扩展点
+- **无需任何外部配置或脚本**
+- 与新版本完全兼容
+
+**优势：**
+- ✅ 在所有版本中使用相同的部署流程
+- ✅ 无需维护额外的初始化脚本
+- ✅ 纯 Java 实现，标准 Jenkins 插件机制
+- ✅ 自动检测，避免重复注册
 
 #### Jenkins 2.319.3 及更早版本（不支持）
 
@@ -61,9 +83,11 @@
 
 ## 🔧 技术实现细节
 
-### 扩展点索引文件
+### 双重注册机制
 
-插件包含手动创建的扩展点索引文件：
+本插件采用两种方式确保扩展点被正确注册：
+
+#### 方式 1：扩展点索引文件
 
 **`src/main/resources/META-INF/services/hudson.Extension`**
 ```
@@ -72,25 +96,50 @@ io.jenkins.plugins.scheduledbuild.ScheduledBuildAction$ScheduledBuildActionFacto
 io.jenkins.plugins.scheduledbuild.ScheduledBuildProperty$ScheduledBuildPropertyDescriptor
 ```
 
-### Jenkins 2.401.3+ 的自动发现流程
+- Jenkins 2.401.3+ 可能自动读取此文件
+- 作为第一层保障
 
-1. **插件加载阶段**
-   - Jenkins 读取 `.hpi` 文件
-   - 解压插件到工作目录
-   
-2. **类加载阶段**
-   - 创建插件专用的类加载器
-   - 加载 `META-INF/MANIFEST.MF`
-   
-3. **扩展点扫描阶段**
-   - 读取 `META-INF/services/hudson.Extension`
-   - 自动实例化所有列出的扩展点类
-   - 注册到相应的扩展点列表
-   
-4. **扩展点可用**
-   - `TransientActionFactory` 自动为所有任务添加 Action
-   - `GlobalConfiguration` 自动注册管理器
-   - 无需任何额外配置
+#### 方式 2：插件初始化器（主要机制）
+
+**`src/main/java/io/jenkins/plugins/scheduledbuild/PluginImpl.java`**
+```java
+public class PluginImpl extends Plugin {
+    
+    @Initializer(after = InitMilestone.JOB_LOADED)
+    public static void registerExtensions() {
+        Jenkins jenkins = Jenkins.get();
+        
+        // 检查是否已自动注册
+        boolean alreadyRegistered = jenkins
+            .getExtensionList(TransientActionFactory.class)
+            .stream()
+            .anyMatch(f -> f.getClass().getName()
+                .contains("ScheduledBuildActionFactory"));
+        
+        if (!alreadyRegistered) {
+            // 手动注册扩展点
+            TransientActionFactory<?> factory = 
+                new ScheduledBuildAction.ScheduledBuildActionFactory();
+            jenkins.getExtensionList(TransientActionFactory.class)
+                   .add(factory);
+        }
+    }
+}
+```
+
+**工作流程：**
+
+1. **插件启动** - `Plugin.start()` 方法被调用
+2. **初始化器执行** - `@Initializer` 方法在 `JOB_LOADED` 之后运行
+3. **检测注册状态** - 检查扩展点是否已通过索引文件注册
+4. **按需注册** - 如果未自动注册，则手动注册
+5. **完成** - 扩展点可用，`TransientActionFactory` 为所有任务添加 Action
+
+**优势：**
+- ✅ 无需外部 Groovy 脚本
+- ✅ 标准 Jenkins 插件机制
+- ✅ 自动检测，避免重复注册
+- ✅ 在所有 Jenkins 版本中一致工作
 
 ## ⚠️ 升级建议
 
