@@ -1,0 +1,54 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.classpath
+.project
+.settings/
+
+# Java
+*.class
+*.jar
+!target/scheduled-build.hpi
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+hs_err_pid*
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Jenkins
+work/
+jenkins_home/
+*.hpl
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+.#*
+
+# Test
+test-output/

@@ -1,0 +1,7 @@
+<?jelly escape-by-default='true'?>
+<div>
+    Jenkins预约构建插件，支持为任务设置多条定时构建任务，每个任务可以配置不同的参数，并可在到期前取消。
+</div>
+
+
+

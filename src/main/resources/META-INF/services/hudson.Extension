@@ -1,0 +1,3 @@
+io.jenkins.plugins.scheduledbuild.ScheduledBuildManager
+io.jenkins.plugins.scheduledbuild.ScheduledBuildAction$ScheduledBuildActionFactory
+io.jenkins.plugins.scheduledbuild.ScheduledBuildProperty$ScheduledBuildPropertyDescriptor

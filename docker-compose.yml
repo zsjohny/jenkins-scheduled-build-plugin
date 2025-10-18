@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  jenkins:
+    image: jenkins/jenkins:2.401.3-jdk11
+    container_name: jenkins-scheduled-build-demo
+    privileged: true
+    user: root
+    ports:
+      - "8080:8080"
+      - "50000:50000"
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - ./target:/plugins
+      - ./init-scripts:/usr/share/jenkins/ref/init.groovy.d
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      - JENKINS_OPTS=--prefix=/
+
+volumes:
+  jenkins_home:
+
+
+

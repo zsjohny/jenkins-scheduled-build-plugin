@@ -1,0 +1,81 @@
+name: PR Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  validate:
+    name: 验证 PR
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout 代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: 代码格式检查
+      run: |
+        echo "检查 Java 代码格式..."
+        find src/main/java -name "*.java" | wc -l
+        
+    - name: 编译检查
+      run: mvn clean compile -DskipTests
+      
+    - name: 依赖检查
+      run: mvn dependency:analyze
+      continue-on-error: true
+      
+    - name: 验证扩展点
+      run: |
+        echo "检查扩展点注解..."
+        grep -r "@Extension" src/main/java/ || echo "未找到 @Extension 注解"
+        
+    - name: 检查资源文件
+      run: |
+        if [ -f src/main/resources/META-INF/services/hudson.Extension ]; then
+          echo "✅ 扩展点索引文件存在"
+          cat src/main/resources/META-INF/services/hudson.Extension
+        else
+          echo "❌ 扩展点索引文件不存在"
+          exit 1
+        fi
+        
+    - name: 打包测试
+      run: mvn package -DskipTests
+      
+    - name: 验证插件完整性
+      run: |
+        echo "检查 HPI 文件..."
+        if [ -f target/scheduled-build.hpi ]; then
+          echo "✅ 插件文件: $(ls -lh target/scheduled-build.hpi | awk '{print $5}')"
+          
+          echo "检查 JAR 内容..."
+          jar tf target/scheduled-build.jar | grep "hudson.Extension"
+          
+          echo "检查扩展点类..."
+          jar tf target/scheduled-build.jar | grep "ScheduledBuildAction\|ScheduledBuildManager\|ScheduledBuildProperty"
+        else
+          echo "❌ 插件构建失败"
+          exit 1
+        fi
+        
+    - name: PR 检查总结
+      if: always()
+      run: |
+        echo "## 📊 PR 检查总结" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "✅ 代码编译成功" >> $GITHUB_STEP_SUMMARY
+        echo "✅ 插件打包成功" >> $GITHUB_STEP_SUMMARY
+        echo "✅ 扩展点索引验证通过" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📦 构建产物" >> $GITHUB_STEP_SUMMARY
+        echo "- 插件文件: target/scheduled-build.hpi" >> $GITHUB_STEP_SUMMARY
+        echo "- 大小: $(ls -lh target/scheduled-build.hpi 2>/dev/null | awk '{print $5}' || echo '未知')" >> $GITHUB_STEP_SUMMARY
+

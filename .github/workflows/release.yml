@@ -1,0 +1,78 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    name: 创建 Release 并发布插件
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+    
+    steps:
+    - name: Checkout 代码
+      uses: actions/checkout@v4
+      
+    - name: 设置 JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+        
+    - name: 获取版本号
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+    - name: 构建插件
+      run: mvn clean package -DskipTests
+      
+    - name: 生成 Release 说明
+      run: |
+        cat > release-notes.md << 'EOF'
+        # Jenkins 预约构建插件 ${{ steps.get_version.outputs.VERSION }}
+        
+        ## 📦 安装方法
+        
+        1. 下载 `scheduled-build.hpi` 文件
+        2. 登录 Jenkins
+        3. 进入 "系统管理" → "插件管理" → "高级"
+        4. 在 "上传插件" 区域选择下载的 .hpi 文件
+        5. 点击 "上传" 并重启 Jenkins
+        
+        ## 🎯 版本要求
+        
+        - **Jenkins**: 2.401.3 LTS 或更高版本
+        - **Java**: 11 或更高版本
+        
+        ## 📝 主要功能
+        
+        - ✅ 多任务预约构建
+        - ✅ 参数化构建支持
+        - ✅ 灵活的取消机制
+        - ✅ 持久化存储
+        - ✅ 友好的 Web 界面
+        
+        ## 📖 文档
+        
+        - [README](https://github.com/${{ github.repository }}/blob/main/README.md)
+        - [版本要求说明](https://github.com/${{ github.repository }}/blob/main/VERSION_REQUIREMENTS.md)
+        - [快速开始](https://github.com/${{ github.repository }}/blob/main/QUICKSTART.md)
+        EOF
+        
+    - name: 创建 GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        name: Release ${{ steps.get_version.outputs.VERSION }}
+        body_path: release-notes.md
+        files: |
+          target/scheduled-build.hpi
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
