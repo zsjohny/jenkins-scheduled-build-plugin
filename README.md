@@ -1,8 +1,12 @@
 # Jenkins 预约构建插件 (Scheduled Build Plugin)
 
 [![GitHub Release](https://img.shields.io/github/v/release/zsjohny/jenkins-scheduled-build-plugin)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/releases)
+[![GitHub Stars](https://img.shields.io/github/stars/zsjohny/jenkins-scheduled-build-plugin?style=social)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/stargazers)
+[![GitHub Forks](https://img.shields.io/github/forks/zsjohny/jenkins-scheduled-build-plugin?style=social)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/network/members)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Jenkins Version](https://img.shields.io/badge/Jenkins-2.401.3%2B-blue)](https://www.jenkins.io/)
+[![GitHub Issues](https://img.shields.io/github/issues/zsjohny/jenkins-scheduled-build-plugin)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/issues)
+[![GitHub Downloads](https://img.shields.io/github/downloads/zsjohny/jenkins-scheduled-build-plugin/total)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/releases)
 
 ## 简介
 
@@ -318,6 +322,27 @@ MIT License
 
 - [Jenkins插件开发指南](https://www.jenkins.io/doc/developer/plugin-development/)
 - [Jenkins插件教程](https://www.jenkins.io/doc/developer/tutorial/)
+
+## ⭐ Star History
+
+如果这个项目对你有帮助，请给我们一个 Star！⭐
+
+[![Star History Chart](https://api.star-history.com/svg?repos=zsjohny/jenkins-scheduled-build-plugin&type=Date)](https://star-history.com/#zsjohny/jenkins-scheduled-build-plugin&Date)
+
+### 项目统计
+
+[![GitHub Repo Size](https://img.shields.io/github/repo-size/zsjohny/jenkins-scheduled-build-plugin)](https://github.com/zsjohny/jenkins-scheduled-build-plugin)
+[![GitHub Code Size](https://img.shields.io/github/languages/code-size/zsjohny/jenkins-scheduled-build-plugin)](https://github.com/zsjohny/jenkins-scheduled-build-plugin)
+[![GitHub Commit Activity](https://img.shields.io/github/commit-activity/m/zsjohny/jenkins-scheduled-build-plugin)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/commits/main)
+[![GitHub Last Commit](https://img.shields.io/github/last-commit/zsjohny/jenkins-scheduled-build-plugin)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/commits/main)
+
+### 社区
+
+如果你喜欢这个项目：
+- ⭐ 给项目一个 Star
+- 🐛 [报告 Bug](https://github.com/zsjohny/jenkins-scheduled-build-plugin/issues)
+- 💡 [提交功能建议](https://github.com/zsjohny/jenkins-scheduled-build-plugin/issues)
+- 🤝 [贡献代码](CONTRIBUTING.md)
 
 
 
