@@ -28,6 +28,21 @@
         </license>
     </licenses>
 
+    <developers>
+        <developer>
+            <id>zsjohny</id>
+            <name>Johny</name>
+            <email>zs.johny@163.com</email>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/jenkinsci/scheduled-build-plugin.git</connection>
+        <developerConnection>scm:git:git@github.com:jenkinsci/scheduled-build-plugin.git</developerConnection>
+        <url>https://github.com/jenkinsci/scheduled-build-plugin</url>
+        <tag>HEAD</tag>
+    </scm>
+
     <properties>
         <!-- Jenkins 2.401.3 LTS (2023年8月) - 具有完整扩展点索引支持的最低推荐版本 -->
         <!-- 此版本开始完全支持 META-INF/services/hudson.Extension 自动发现机制 -->

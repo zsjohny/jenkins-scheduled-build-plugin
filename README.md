@@ -1,8 +1,14 @@
 # Jenkins 预约构建插件 (Scheduled Build Plugin)
 
+[![GitHub Release](https://img.shields.io/github/v/release/zsjohny/jenkins-scheduled-build-plugin)](https://github.com/zsjohny/jenkins-scheduled-build-plugin/releases)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Jenkins Version](https://img.shields.io/badge/Jenkins-2.401.3%2B-blue)](https://www.jenkins.io/)
+
 ## 简介
 
 这是一个Jenkins插件，为任务提供预约构建功能。可以设置多条定时构建任务，每个任务支持不同的参数配置，并且可以在到期前取消预约。
+
+> **📦 插件中心托管**: 正在申请提交到 [Jenkins 插件中心](https://plugins.jenkins.io/)，届时可直接在 Jenkins 插件管理中搜索安装。详见 [JENKINS_PLUGIN_CENTER_GUIDE.md](JENKINS_PLUGIN_CENTER_GUIDE.md)
 
 ## 主要功能
 
