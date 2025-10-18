@@ -77,6 +77,37 @@ mvn hpi:run
 ```
 这将启动一个带有插件的Jenkins实例在 http://localhost:8080/jenkins
 
+## ⏰ 时区配置（重要）
+
+**预约构建功能依赖正确的时区设置！**
+
+### Docker 环境（已配置）
+
+使用本项目的 `docker-compose.yml` 已自动配置为上海时区 (Asia/Shanghai, UTC+8)。
+
+### 非 Docker 环境
+
+如果您在生产环境使用，请配置 Jenkins 时区：
+
+```bash
+# 方法 1: 修改 JAVA_OPTS（推荐）
+JAVA_OPTS="-Duser.timezone=Asia/Shanghai"
+
+# 方法 2: 设置环境变量
+export TZ=Asia/Shanghai
+```
+
+### 验证时区
+
+在 Jenkins Script Console 运行：
+
+```groovy
+println "时区: " + TimeZone.getDefault().getID()
+println "当前时间: " + new Date()
+```
+
+📖 **详细配置**: 参见 [INSTALLATION_GUIDE.md](INSTALLATION_GUIDE.md#⏰-时区配置)
+
 ## 使用说明
 
 ### 1. 启用插件

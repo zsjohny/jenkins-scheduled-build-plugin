@@ -218,13 +218,98 @@ docker restart jenkins
 4. 🔄 **Jenkins 重启**：重启不会丢失预约，会自动恢复
 5. ⚡ **服务器关闭**：如果预约时间内服务器关闭，预约会过期
 
+## ⏰ 时区配置
+
+### 为什么需要配置时区？
+
+预约构建功能依赖正确的时区设置。如果 Jenkins 使用 UTC 时间，而您期望使用本地时间（如上海时间 UTC+8），需要配置时区。
+
+### Docker 环境时区配置
+
+如果使用 `docker-compose.yml` 启动 Jenkins，已自动配置为上海时区：
+
+```yaml
+environment:
+  - TZ=Asia/Shanghai
+  - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Duser.timezone=Asia/Shanghai
+```
+
+### 非 Docker 环境时区配置
+
+#### 方法 1：通过 JAVA_OPTS（推荐）
+
+在 Jenkins 启动脚本中设置：
+
+```bash
+# Linux/macOS - 编辑 /etc/default/jenkins 或 jenkins 启动脚本
+JAVA_OPTS="-Duser.timezone=Asia/Shanghai"
+
+# Windows - 编辑 jenkins.xml
+<arguments>-Duser.timezone=Asia/Shanghai</arguments>
+```
+
+#### 方法 2：通过 Jenkins Script Console
+
+1. 访问 **系统管理** → **脚本命令行**
+2. 执行以下脚本：
+
+```groovy
+System.setProperty('user.timezone', 'Asia/Shanghai')
+println "当前时区: " + TimeZone.getDefault().getID()
+println "当前时间: " + new Date()
+```
+
+**注意**: 此方法重启后失效，建议使用方法 1。
+
+#### 方法 3：通过环境变量
+
+```bash
+# Linux/macOS
+export TZ=Asia/Shanghai
+sudo systemctl restart jenkins
+
+# Docker
+docker run -e TZ=Asia/Shanghai jenkins/jenkins:lts
+```
+
+### 验证时区配置
+
+运行以下 Groovy 脚本验证：
+
+```groovy
+println "系统时区: " + System.getProperty("user.timezone")
+println "默认时区: " + TimeZone.getDefault().getID()
+println "当前时间: " + new Date()
+println "时区偏移: " + TimeZone.getDefault().getRawOffset() / 3600000 + " 小时"
+```
+
+**期望输出（上海时区）**：
+```
+系统时区: Asia/Shanghai
+默认时区: Asia/Shanghai
+当前时间: Sat Oct 19 12:00:00 CST 2025
+时区偏移: 8 小时
+```
+
+### 常见时区列表
+
+| 地区 | 时区标识 | UTC 偏移 |
+|------|---------|---------|
+| 上海/北京 | Asia/Shanghai | UTC+8 |
+| 香港 | Asia/Hong_Kong | UTC+8 |
+| 台北 | Asia/Taipei | UTC+8 |
+| 东京 | Asia/Tokyo | UTC+9 |
+| 新加坡 | Asia/Singapore | UTC+8 |
+| 纽约 | America/New_York | UTC-5/-4 |
+| 伦敦 | Europe/London | UTC+0/+1 |
+
 ## 📞 支持
 
 如有问题，请：
 
 1. 查看 Jenkins 日志：`$JENKINS_HOME/logs/`
 2. 提交 GitHub Issue
-3. 查看项目文档：`README.md` 和 `COMPATIBILITY.md`
+3. 查看项目文档：`README.md` 和 `VERSION_REQUIREMENTS.md`
 
 ---
 

@@ -36,6 +36,25 @@ mvn hpi:run
 # 访问 http://localhost:8080/jenkins
 ```
 
+### 第2.5步：配置时区（推荐，30秒）
+
+⚠️ **重要**: 预约构建功能需要正确的时区设置
+
+#### 快速验证
+在 Jenkins → 系统管理 → 脚本命令行 运行：
+```groovy
+println "时区: " + TimeZone.getDefault().getID()
+```
+
+#### 如需修改时区（上海时间）
+```bash
+# Docker 用户: 已在 docker-compose.yml 中配置
+# 非 Docker 用户: 添加到 JAVA_OPTS
+JAVA_OPTS="-Duser.timezone=Asia/Shanghai"
+```
+
+详见: [时区配置文档](INSTALLATION_GUIDE.md#⏰-时区配置)
+
 ### 第3步：配置任务 (1分钟)
 
 1. 打开任意Jenkins任务的配置页面

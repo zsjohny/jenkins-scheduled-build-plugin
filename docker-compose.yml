@@ -14,7 +14,8 @@ services:
       - ./target:/plugins
       - ./init-scripts:/usr/share/jenkins/ref/init.groovy.d
     environment:
-      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      - TZ=Asia/Shanghai
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false -Duser.timezone=Asia/Shanghai
       - JENKINS_OPTS=--prefix=/
 
 volumes:
