@@ -45,7 +45,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-org/jenkins-scheduled-build-plugin.git
+git clone https://github.com/zsjohny/jenkins-scheduled-build-plugin.git
 cd jenkins-scheduled-build-plugin
 ```
 
@@ -267,13 +267,15 @@ MIT License
 
 ## 更新日志
 
-### v1.0.0 (2024-01-XX)
+### v1.0.0 (2025-10-19)
 - 首次发布
-- 支持多任务预约
+- 支持多任务预约构建
 - 支持参数化构建
 - 支持取消预约
 - 持久化存储
 - Web管理界面
+- 双重扩展点注册机制
+- 标准 Jenkins 插件架构
 
 ## 相关链接
 

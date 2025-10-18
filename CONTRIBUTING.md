@@ -180,7 +180,7 @@ Closes #xxx
 
 2. **克隆项目**
 ```bash
-git clone https://github.com/your-org/jenkins-scheduled-build-plugin.git
+git clone https://github.com/zsjohny/jenkins-scheduled-build-plugin.git
 cd jenkins-scheduled-build-plugin
 ```
 
