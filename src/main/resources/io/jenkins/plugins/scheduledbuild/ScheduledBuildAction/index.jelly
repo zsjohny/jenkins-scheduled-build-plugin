@@ -3,67 +3,327 @@
     <l:layout title="预约构建 - ${it.job.displayName}" permission="${it.job.READ}">
         <st:include page="sidepanel.jelly" it="${it.job}"/>
         <l:main-panel>
-            <h1>预约构建管理</h1>
+            <style>
+                .scheduled-build-container {
+                    max-width: 1200px;
+                }
+                .scheduled-build-header {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 20px 30px;
+                    border-radius: 8px;
+                    margin-bottom: 30px;
+                    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+                }
+                .scheduled-build-header h1 {
+                    margin: 0;
+                    color: white;
+                    font-size: 28px;
+                    font-weight: 600;
+                }
+                .add-schedule-card {
+                    background: white;
+                    padding: 25px;
+                    margin-bottom: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    border: 1px solid #e0e0e0;
+                }
+                .add-schedule-card h2 {
+                    margin-top: 0;
+                    color: #333;
+                    font-size: 20px;
+                    font-weight: 600;
+                    border-bottom: 2px solid #667eea;
+                    padding-bottom: 10px;
+                    margin-bottom: 20px;
+                }
+                .form-row {
+                    margin-bottom: 20px;
+                }
+                .form-label {
+                    display: block;
+                    font-weight: 600;
+                    color: #555;
+                    margin-bottom: 8px;
+                    font-size: 14px;
+                }
+                .form-input, .form-select {
+                    width: 100%;
+                    max-width: 500px;
+                    padding: 10px 12px;
+                    border: 1px solid #ddd;
+                    border-radius: 4px;
+                    font-size: 14px;
+                    transition: border-color 0.3s;
+                }
+                .form-input:focus, .form-select:focus {
+                    outline: none;
+                    border-color: #667eea;
+                    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+                }
+                .form-hint {
+                    color: #888;
+                    font-size: 12px;
+                    margin-top: 5px;
+                    font-style: italic;
+                }
+                .param-section {
+                    background: #f8f9fa;
+                    padding: 20px;
+                    border-radius: 6px;
+                    margin-top: 20px;
+                    border: 1px solid #e9ecef;
+                }
+                .param-section h3 {
+                    margin-top: 0;
+                    color: #444;
+                    font-size: 16px;
+                    margin-bottom: 15px;
+                }
+                .param-item {
+                    background: white;
+                    padding: 15px;
+                    margin-bottom: 12px;
+                    border-radius: 4px;
+                    border: 1px solid #dee2e6;
+                }
+                .param-name {
+                    font-weight: 600;
+                    color: #495057;
+                    margin-bottom: 8px;
+                    font-size: 14px;
+                }
+                .param-desc {
+                    color: #6c757d;
+                    font-size: 12px;
+                    margin-top: 5px;
+                }
+                .btn-primary {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 12px 30px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+                }
+                .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
+                }
+                .btn-danger {
+                    background: #dc3545;
+                    color: white;
+                    padding: 6px 14px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    transition: background 0.3s;
+                }
+                .btn-danger:hover {
+                    background: #c82333;
+                }
+                .btn-secondary {
+                    background: #6c757d;
+                    color: white;
+                    padding: 6px 14px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    transition: background 0.3s;
+                }
+                .btn-secondary:hover {
+                    background: #5a6268;
+                }
+                .schedule-list-card {
+                    background: white;
+                    padding: 25px;
+                    margin-bottom: 30px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+                    border: 1px solid #e0e0e0;
+                }
+                .schedule-list-card h2 {
+                    margin-top: 0;
+                    color: #333;
+                    font-size: 20px;
+                    font-weight: 600;
+                    margin-bottom: 20px;
+                }
+                .schedule-count {
+                    background: #667eea;
+                    color: white;
+                    padding: 2px 10px;
+                    border-radius: 12px;
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin-left: 10px;
+                }
+                .no-data {
+                    text-align: center;
+                    padding: 40px;
+                    color: #999;
+                    font-size: 14px;
+                }
+                .status-badge {
+                    padding: 4px 12px;
+                    border-radius: 12px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    display: inline-block;
+                }
+                .status-executed {
+                    background: #d4edda;
+                    color: #155724;
+                }
+                .status-cancelled {
+                    background: #f8d7da;
+                    color: #721c24;
+                }
+                .status-pending {
+                    background: #d1ecf1;
+                    color: #0c5460;
+                }
+                .status-expired {
+                    background: #fff3cd;
+                    color: #856404;
+                }
+                .countdown {
+                    font-weight: 600;
+                    color: #667eea;
+                    font-family: 'Courier New', monospace;
+                }
+                .param-display {
+                    background: #f8f9fa;
+                    padding: 8px 12px;
+                    border-radius: 4px;
+                    font-family: 'Courier New', monospace;
+                    font-size: 12px;
+                    color: #495057;
+                    border: 1px solid #e9ecef;
+                }
+                .checkbox-wrapper {
+                    display: flex;
+                    align-items: center;
+                }
+                .checkbox-wrapper input[type="checkbox"] {
+                    width: 18px;
+                    height: 18px;
+                    margin-right: 8px;
+                    cursor: pointer;
+                }
+            </style>
             
-            <!-- 添加新预约表单 -->
-            <div style="background: #f5f5f5; padding: 20px; margin-bottom: 30px; border-radius: 5px;">
-                <h2>添加新预约</h2>
-                <form method="post" action="schedule">
-                    <table style="width: 100%;">
-                        <tr>
-                            <td style="width: 150px; vertical-align: top;">
-                                <label for="scheduledTime"><b>预约时间：</b></label>
-                            </td>
-                            <td>
-                                <input type="datetime-local" 
-                                       id="scheduledTime" 
-                                       name="scheduledTime" 
-                                       required="required"
-                                       style="padding: 5px; font-size: 14px;"/>
-                                <div style="color: #666; margin-top: 5px;">
-                                    选择构建执行的日期和时间
-                                </div>
-                            </td>
-                        </tr>
+            <script type="text/javascript">
+                // 动态倒计时更新
+                function updateCountdowns() {
+                    var countdowns = document.querySelectorAll('.countdown');
+                    countdowns.forEach(function(elem) {
+                        var targetTime = parseInt(elem.getAttribute('data-target'));
+                        if (!targetTime) return;
                         
-                        <tr>
-                            <td style="vertical-align: top; padding-top: 15px;">
-                                <label for="description"><b>描述：</b></label>
-                            </td>
-                            <td style="padding-top: 15px;">
-                                <input type="text" 
-                                       id="description" 
-                                       name="description" 
-                                       style="width: 400px; padding: 5px; font-size: 14px;"
-                                       placeholder="预约说明（可选）"/>
-                            </td>
-                        </tr>
+                        var now = new Date().getTime();
+                        var diff = targetTime - now;
+                        
+                        if (diff &lt;= 0) {
+                            elem.textContent = '即将执行...';
+                            elem.style.color = '#dc3545';
+                            return;
+                        }
+                        
+                        var days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                        var hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                        var minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        var seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                        
+                        var result = '';
+                        if (days > 0) result += days + '天 ';
+                        if (hours > 0 || days > 0) result += hours + '小时 ';
+                        if (minutes > 0 || hours > 0 || days > 0) result += minutes + '分 ';
+                        result += seconds + '秒';
+                        
+                        elem.textContent = result;
+                        
+                        // 根据剩余时间改变颜色
+                        if (diff &lt; 300000) { // 小于5分钟
+                            elem.style.color = '#dc3545';
+                        } else if (diff &lt; 3600000) { // 小于1小时
+                            elem.style.color = '#fd7e14';
+                        } else {
+                            elem.style.color = '#667eea';
+                        }
+                    });
+                }
+                
+                // 页面加载后立即更新一次
+                window.addEventListener('DOMContentLoaded', function() {
+                    updateCountdowns();
+                    // 每秒更新一次
+                    setInterval(updateCountdowns, 1000);
+                });
+            </script>
+            
+            <div class="scheduled-build-container">
+                <div class="scheduled-build-header">
+                    <h1>⏰ 预约构建管理</h1>
+                </div>
+            
+                <!-- 添加新预约表单 -->
+                <div class="add-schedule-card">
+                    <h2>📝 添加新预约</h2>
+                    <form method="post" action="schedule">
+                        <div class="form-row">
+                            <label for="scheduledTime" class="form-label">📅 预约时间 *</label>
+                            <input type="datetime-local" 
+                                   id="scheduledTime" 
+                                   name="scheduledTime" 
+                                   required="required"
+                                   class="form-input"/>
+                            <div class="form-hint">
+                                选择构建执行的日期和时间
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <label for="description" class="form-label">📄 描述</label>
+                            <input type="text" 
+                                   id="description" 
+                                   name="description" 
+                                   class="form-input"
+                                   placeholder="预约说明（可选）"/>
+                            <div class="form-hint">
+                                为这次预约添加说明，方便后续识别
+                            </div>
+                        </div>
                         
                         <!-- 参数 -->
                         <j:if test="${!it.jobParameters.isEmpty()}">
-                            <tr>
-                                <td colspan="2" style="padding-top: 20px;">
-                                    <h3>构建参数</h3>
-                                </td>
-                            </tr>
-                            <j:forEach var="param" items="${it.jobParameters}">
-                                <tr>
-                                    <td style="vertical-align: top; padding-top: 10px;">
-                                        <label for="param_${param.name}"><b>${param.name}：</b></label>
-                                    </td>
-                                    <td style="padding-top: 10px;">
+                            <div class="param-section">
+                                <h3>🔧 构建参数</h3>
+                                <j:forEach var="param" items="${it.jobParameters}">
+                                    <div class="param-item">
+                                        <div class="param-name">${param.name}</div>
                                         <j:choose>
                                             <j:when test="${param.class.simpleName == 'BooleanParameterDefinition'}">
-                                                <input type="checkbox" 
-                                                       id="param_${param.name}" 
-                                                       name="param_${param.name}"
-                                                       value="true"
-                                                       checked="${param.defaultValue}"/>
+                                                <div class="checkbox-wrapper">
+                                                    <input type="checkbox" 
+                                                           id="param_${param.name}" 
+                                                           name="param_${param.name}"
+                                                           value="true"
+                                                           checked="${param.defaultValue}"/>
+                                                    <label for="param_${param.name}">启用</label>
+                                                </div>
                                             </j:when>
                                             <j:when test="${param.class.simpleName == 'ChoiceParameterDefinition'}">
                                                 <select id="param_${param.name}" 
                                                         name="param_${param.name}"
-                                                        style="padding: 5px; font-size: 14px;">
+                                                        class="form-select">
                                                     <j:forEach var="choice" items="${param.choices}">
                                                         <option value="${choice}">${choice}</option>
                                                     </j:forEach>
@@ -74,136 +334,154 @@
                                                        id="param_${param.name}" 
                                                        name="param_${param.name}"
                                                        value="${param.defaultParameterValue.value}"
-                                                       style="width: 400px; padding: 5px; font-size: 14px;"/>
+                                                       class="form-input"/>
                                             </j:otherwise>
                                         </j:choose>
-                                        <div style="color: #666; margin-top: 5px;">
-                                            ${param.description}
-                                        </div>
-                                    </td>
-                                </tr>
-                            </j:forEach>
+                                        <j:if test="${param.description != null and param.description != ''}">
+                                            <div class="param-desc">
+                                                ${param.description}
+                                            </div>
+                                        </j:if>
+                                    </div>
+                                </j:forEach>
+                            </div>
                         </j:if>
                         
-                        <tr>
-                            <td colspan="2" style="padding-top: 20px;">
-                                <button type="submit" 
-                                        style="padding: 10px 20px; font-size: 14px; background: #4CAF50; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                                    添加预约
-                                </button>
-                            </td>
-                        </tr>
-                    </table>
-                </form>
+                        <div class="form-row" style="margin-top: 25px;">
+                            <button type="submit" class="btn-primary">
+                                ✓ 添加预约
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 待执行的预约 -->
+                <div class="schedule-list-card">
+                    <h2>
+                        🚀 待执行的预约
+                        <span class="schedule-count">${it.pendingBuilds.size()}</span>
+                    </h2>
+                    <j:choose>
+                        <j:when test="${it.pendingBuilds.isEmpty()}">
+                            <div class="no-data">
+                                📭 暂无待执行的预约
+                            </div>
+                        </j:when>
+                        <j:otherwise>
+                            <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 180px;">预约时间</th>
+                                        <th style="width: 150px;">⏱️ 倒计时</th>
+                                        <th>描述</th>
+                                        <th style="width: 200px;">参数</th>
+                                        <th style="width: 100px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <j:forEach var="task" items="${it.pendingBuilds}">
+                                        <tr>
+                                            <td>${it.formatDateTime(task.scheduledTime)}</td>
+                                            <td>
+                                                <span class="countdown" data-target="${task.scheduledTime}">
+                                                    ${it.getRelativeTime(task.scheduledTime)}
+                                                </span>
+                                            </td>
+                                            <td>${task.description}</td>
+                                            <td>
+                                                <div class="param-display">
+                                                    ${task.parametersString}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <form method="post" action="cancel" style="display: inline;">
+                                                    <input type="hidden" name="taskId" value="${task.id}"/>
+                                                    <button type="submit" class="btn-danger">
+                                                        ✗ 取消
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </j:forEach>
+                                </tbody>
+                            </table>
+                        </j:otherwise>
+                    </j:choose>
+                </div>
+
+                <!-- 所有预约历史 -->
+                <div class="schedule-list-card">
+                    <h2>
+                        📚 所有预约记录
+                        <span class="schedule-count">${it.scheduledBuilds.size()}</span>
+                    </h2>
+                    <j:choose>
+                        <j:when test="${it.scheduledBuilds.isEmpty()}">
+                            <div class="no-data">
+                                📭 暂无预约记录
+                            </div>
+                        </j:when>
+                        <j:otherwise>
+                            <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 180px;">预约时间</th>
+                                        <th style="width: 120px;">状态</th>
+                                        <th>描述</th>
+                                        <th style="width: 200px;">参数</th>
+                                        <th style="width: 140px;">操作</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <j:forEach var="task" items="${it.scheduledBuilds}">
+                                        <tr>
+                                            <td>${it.formatDateTime(task.scheduledTime)}</td>
+                                            <td>
+                                                <j:choose>
+                                                    <j:when test="${task.executed}">
+                                                        <span class="status-badge status-executed">✓ 已执行</span>
+                                                    </j:when>
+                                                    <j:when test="${task.cancelled}">
+                                                        <span class="status-badge status-cancelled">✗ 已取消</span>
+                                                    </j:when>
+                                                    <j:when test="${task.pending}">
+                                                        <span class="status-badge status-pending">⏳ 待执行</span>
+                                                    </j:when>
+                                                    <j:otherwise>
+                                                        <span class="status-badge status-expired">⚠ 已过期</span>
+                                                    </j:otherwise>
+                                                </j:choose>
+                                            </td>
+                                            <td>${task.description}</td>
+                                            <td>
+                                                <div class="param-display">
+                                                    ${task.parametersString}
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <j:if test="${task.pending}">
+                                                    <form method="post" action="cancel" style="display: inline; margin-right: 5px;">
+                                                        <input type="hidden" name="taskId" value="${task.id}"/>
+                                                        <button type="submit" class="btn-danger">
+                                                            ✗ 取消
+                                                        </button>
+                                                    </form>
+                                                </j:if>
+                                                <form method="post" action="delete" style="display: inline;">
+                                                    <input type="hidden" name="taskId" value="${task.id}"/>
+                                                    <button type="submit" class="btn-secondary">
+                                                        🗑️ 删除
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    </j:forEach>
+                                </tbody>
+                            </table>
+                        </j:otherwise>
+                    </j:choose>
+                </div>
             </div>
-
-            <!-- 待执行的预约 -->
-            <h2>待执行的预约 (${it.pendingBuilds.size()})</h2>
-            <j:choose>
-                <j:when test="${it.pendingBuilds.isEmpty()}">
-                    <p style="color: #666;">暂无待执行的预约</p>
-                </j:when>
-                <j:otherwise>
-                    <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
-                        <thead>
-                            <tr>
-                                <th>预约时间</th>
-                                <th>倒计时</th>
-                                <th>描述</th>
-                                <th>参数</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <j:forEach var="task" items="${it.pendingBuilds}">
-                                <tr>
-                                    <td>${it.formatDateTime(task.scheduledTime)}</td>
-                                    <td>${it.getRelativeTime(task.scheduledTime)}</td>
-                                    <td>${task.description}</td>
-                                    <td style="font-family: monospace; font-size: 12px;">
-                                        ${task.parametersString}
-                                    </td>
-                                    <td>
-                                        <form method="post" action="cancel" style="display: inline;">
-                                            <input type="hidden" name="taskId" value="${task.id}"/>
-                                            <button type="submit" 
-                                                    style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                                                取消
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            </j:forEach>
-                        </tbody>
-                    </table>
-                </j:otherwise>
-            </j:choose>
-
-            <!-- 所有预约历史 -->
-            <h2 style="margin-top: 40px;">所有预约记录 (${it.scheduledBuilds.size()})</h2>
-            <j:choose>
-                <j:when test="${it.scheduledBuilds.isEmpty()}">
-                    <p style="color: #666;">暂无预约记录</p>
-                </j:when>
-                <j:otherwise>
-                    <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
-                        <thead>
-                            <tr>
-                                <th>预约时间</th>
-                                <th>状态</th>
-                                <th>描述</th>
-                                <th>参数</th>
-                                <th>操作</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <j:forEach var="task" items="${it.scheduledBuilds}">
-                                <tr>
-                                    <td>${it.formatDateTime(task.scheduledTime)}</td>
-                                    <td>
-                                        <j:choose>
-                                            <j:when test="${task.executed}">
-                                                <span style="color: green; font-weight: bold;">✓ 已执行</span>
-                                            </j:when>
-                                            <j:when test="${task.cancelled}">
-                                                <span style="color: red;">✗ 已取消</span>
-                                            </j:when>
-                                            <j:when test="${task.pending}">
-                                                <span style="color: blue;">⏳ 待执行</span>
-                                            </j:when>
-                                            <j:otherwise>
-                                                <span style="color: orange;">⚠ 已过期</span>
-                                            </j:otherwise>
-                                        </j:choose>
-                                    </td>
-                                    <td>${task.description}</td>
-                                    <td style="font-family: monospace; font-size: 12px;">
-                                        ${task.parametersString}
-                                    </td>
-                                    <td>
-                                        <j:if test="${task.pending}">
-                                            <form method="post" action="cancel" style="display: inline; margin-right: 5px;">
-                                                <input type="hidden" name="taskId" value="${task.id}"/>
-                                                <button type="submit" 
-                                                        style="padding: 5px 10px; background: #f44336; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                                                    取消
-                                                </button>
-                                            </form>
-                                        </j:if>
-                                        <form method="post" action="delete" style="display: inline;">
-                                            <input type="hidden" name="taskId" value="${task.id}"/>
-                                            <button type="submit" 
-                                                    style="padding: 5px 10px; background: #999; color: white; border: none; border-radius: 3px; cursor: pointer;">
-                                                删除记录
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            </j:forEach>
-                        </tbody>
-                    </table>
-                </j:otherwise>
-            </j:choose>
         </l:main-panel>
     </l:layout>
 </j:jelly>
