@@ -26,14 +26,35 @@ public class ScheduledBuildManager extends GlobalConfiguration {
     private static volatile ScheduledBuildManager instance;
     
     private final Map<String, ScheduledBuildTask> tasks = new ConcurrentHashMap<>();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(5);
+    // transient 避免序列化线程池，会在构造函数和 readResolve 中初始化
+    private transient ScheduledExecutorService scheduler;
 
     public ScheduledBuildManager() {
         instance = this;
+        // 初始化调度器
+        initScheduler();
         load();
         // 启动时恢复所有未执行的任务
         recoverPendingTasks();
         LOGGER.info("ScheduledBuildManager 已初始化");
+    }
+    
+    /**
+     * 初始化调度器
+     */
+    private void initScheduler() {
+        if (scheduler == null) {
+            scheduler = Executors.newScheduledThreadPool(5);
+            LOGGER.info("调度器已初始化");
+        }
+    }
+    
+    /**
+     * 反序列化后的处理，确保 scheduler 被重新初始化
+     */
+    private Object readResolve() {
+        initScheduler();
+        return this;
     }
 
     public static ScheduledBuildManager get() {
@@ -149,6 +170,8 @@ public class ScheduledBuildManager extends GlobalConfiguration {
             return;
         }
 
+        // 确保调度器已初始化
+        initScheduler();
         scheduler.schedule(() -> executeTask(task), delay, TimeUnit.MILLISECONDS);
         LOGGER.info(String.format("已调度任务 %s，将在 %d 毫秒后执行", task.getId(), delay));
     }
