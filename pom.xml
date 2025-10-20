@@ -7,14 +7,14 @@
     <parent>
         <groupId>org.jenkins-ci.plugins</groupId>
         <artifactId>plugin</artifactId>
-        <!-- 使用4.75版本以支持Jenkins 2.401.3 LTS -->
-        <version>4.75</version>
+        <!-- 使用4.40版本以支持Jenkins 2.332.2 LTS -->
+        <version>4.40</version>
         <relativePath />
     </parent>
 
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>scheduled-build</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.0-jenkins-2.332.2</version>
     <packaging>hpi</packaging>
 
     <name>Scheduled Build Plugin</name>
@@ -44,9 +44,9 @@
     </scm>
 
     <properties>
-        <!-- Jenkins 2.401.3 LTS (2023年8月) - 具有完整扩展点索引支持的最低推荐版本 -->
-        <!-- 此版本开始完全支持 META-INF/services/hudson.Extension 自动发现机制 -->
-        <jenkins.version>2.401.3</jenkins.version>
+        <!-- Jenkins 2.332.2 LTS (2022年4月) -->
+        <!-- 使用双重扩展点注册机制确保兼容性 -->
+        <jenkins.version>2.332.2</jenkins.version>
         <java.level>11</java.level>
         <maven.compiler.source>11</maven.compiler.source>
         <maven.compiler.target>11</maven.compiler.target>

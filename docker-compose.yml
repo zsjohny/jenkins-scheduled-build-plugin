@@ -2,8 +2,8 @@ version: '3.8'
 
 services:
   jenkins:
-    image: jenkins/jenkins:2.401.3-jdk11
-    container_name: jenkins-scheduled-build-demo
+    image: jenkins/jenkins:2.332.2-jdk11
+    container_name: jenkins-scheduled-build-demo-2.332
     privileged: true
     user: root
     ports:
