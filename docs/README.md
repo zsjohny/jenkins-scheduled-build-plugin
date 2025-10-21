@@ -33,6 +33,10 @@
 ### 技术支持
 - [JENKINS_2.332.2_SUPPORT.md](JENKINS_2.332.2_SUPPORT.md) - Jenkins 2.332.2 LTS 支持分支说明
 
+### 项目管理
+- [PROJECT_ORGANIZATION.md](PROJECT_ORGANIZATION.md) - 项目目录组织说明
+- [PROJECT_TREE.txt](PROJECT_TREE.txt) - 项目文件树
+
 ### 其他
 - [README_PREVIEW.md](README_PREVIEW.md) - README 预览
 
