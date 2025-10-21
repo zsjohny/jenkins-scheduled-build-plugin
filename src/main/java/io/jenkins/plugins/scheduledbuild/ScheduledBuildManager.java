@@ -199,11 +199,14 @@ public class ScheduledBuildManager extends GlobalConfiguration {
                 return;
             }
 
-            Job<?, ?> job = jenkins.getItemByFullName(task.getJobName(), Job.class);
+            // 尝试多种方式查找任务，提高兼容性
+            Job<?, ?> job = findJob(jenkins, task.getJobName());
             if (job == null) {
-                LOGGER.severe("找不到任务: " + task.getJobName());
+                LOGGER.severe(String.format("找不到任务: %s (已尝试多种查找方式)", task.getJobName()));
                 return;
             }
+            
+            LOGGER.info(String.format("找到任务: %s (类型: %s)", task.getJobName(), job.getClass().getSimpleName()));
 
             // 准备构建参数
             List<ParameterValue> parameterValues = task.toParameterValues();
@@ -281,6 +284,100 @@ public class ScheduledBuildManager extends GlobalConfiguration {
     public boolean configure(StaplerRequest req, JSONObject json) throws FormException {
         save();
         return true;
+    }
+    
+    /**
+     * 尝试多种方式查找任务，提高兼容性
+     * 支持 FreeStyle、Pipeline、Folder 等各种任务类型
+     */
+    private Job<?, ?> findJob(Jenkins jenkins, String jobName) {
+        if (jobName == null || jobName.isEmpty()) {
+            LOGGER.warning("任务名称为空");
+            return null;
+        }
+        
+        LOGGER.info(String.format("开始查找任务: %s", jobName));
+        
+        // 方式1: 使用 getItemByFullName (标准方式，支持文件夹路径)
+        try {
+            Job<?, ?> job = jenkins.getItemByFullName(jobName, Job.class);
+            if (job != null) {
+                LOGGER.info(String.format("方式1成功: getItemByFullName 找到任务 %s", jobName));
+                return job;
+            }
+        } catch (Exception e) {
+            LOGGER.warning(String.format("方式1失败: getItemByFullName 查找 %s 出错: %s", jobName, e.getMessage()));
+        }
+        
+        // 方式2: 使用 getItem (不支持路径，仅根目录)
+        try {
+            Item item = jenkins.getItem(jobName);
+            if (item instanceof Job) {
+                LOGGER.info(String.format("方式2成功: getItem 找到任务 %s", jobName));
+                return (Job<?, ?>) item;
+            }
+        } catch (Exception e) {
+            LOGGER.warning(String.format("方式2失败: getItem 查找 %s 出错: %s", jobName, e.getMessage()));
+        }
+        
+        // 方式3: 尝试处理转义的任务名称（URL编码）
+        try {
+            String decodedName = java.net.URLDecoder.decode(jobName, "UTF-8");
+            if (!decodedName.equals(jobName)) {
+                LOGGER.info(String.format("尝试解码后的任务名: %s -> %s", jobName, decodedName));
+                Job<?, ?> job = jenkins.getItemByFullName(decodedName, Job.class);
+                if (job != null) {
+                    LOGGER.info(String.format("方式3成功: 使用解码名称找到任务 %s", decodedName));
+                    return job;
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warning(String.format("方式3失败: URL解码查找 %s 出错: %s", jobName, e.getMessage()));
+        }
+        
+        // 方式4: 遍历所有任务查找精确匹配（最后的兜底方案）
+        try {
+            LOGGER.info("方式4: 开始遍历所有任务");
+            for (Item item : jenkins.getAllItems()) {
+                if (item instanceof Job) {
+                    Job<?, ?> job = (Job<?, ?>) item;
+                    String fullName = job.getFullName();
+                    String name = job.getName();
+                    
+                    // 尝试匹配 fullName 或 name
+                    if (fullName.equals(jobName) || name.equals(jobName)) {
+                        LOGGER.info(String.format("方式4成功: 遍历找到任务 %s (fullName: %s, name: %s)", 
+                            jobName, fullName, name));
+                        return job;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warning(String.format("方式4失败: 遍历查找 %s 出错: %s", jobName, e.getMessage()));
+        }
+        
+        // 所有方式都失败，记录详细信息
+        LOGGER.severe(String.format("所有查找方式都失败，无法找到任务: %s", jobName));
+        LOGGER.info("可用的任务列表:");
+        try {
+            int count = 0;
+            for (Item item : jenkins.getAllItems()) {
+                if (item instanceof Job) {
+                    Job<?, ?> job = (Job<?, ?>) item;
+                    LOGGER.info(String.format("  - %s (类型: %s, fullName: %s)", 
+                        job.getName(), job.getClass().getSimpleName(), job.getFullName()));
+                    count++;
+                    if (count >= 20) {
+                        LOGGER.info("  ... (只显示前20个任务)");
+                        break;
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warning("列出任务失败: " + e.getMessage());
+        }
+        
+        return null;
     }
 
     /**
