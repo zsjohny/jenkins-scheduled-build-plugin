@@ -32,6 +32,10 @@
 
 ### 技术支持
 - [JENKINS_2.332.2_SUPPORT.md](JENKINS_2.332.2_SUPPORT.md) - Jenkins 2.332.2 LTS 支持分支说明
+- [PIPELINE_JOB_FIX.md](PIPELINE_JOB_FIX.md) - Pipeline 任务兼容性修复 (仅 main 分支)
+- [ACL_CONTEXT_FIX.md](ACL_CONTEXT_FIX.md) - 线程池 ACL 权限上下文问题修复
+- [SERIALIZATION_FIX.md](SERIALIZATION_FIX.md) - 序列化警告修复 (仅 main 分支)
+- [UI_IMPROVEMENTS.md](UI_IMPROVEMENTS.md) - UI/UX 改进说明 (仅 main 分支)
 
 ### 项目管理
 - [PROJECT_ORGANIZATION.md](PROJECT_ORGANIZATION.md) - 项目目录组织说明
