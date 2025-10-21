@@ -2,6 +2,8 @@ package io.jenkins.plugins.scheduledbuild;
 
 import hudson.Extension;
 import hudson.model.*;
+import hudson.security.ACL;
+import hudson.security.ACLContext;
 import jenkins.model.GlobalConfiguration;
 import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
@@ -192,6 +194,18 @@ public class ScheduledBuildManager extends GlobalConfiguration {
             }
         }
 
+        // 关键修复：在 SYSTEM 权限上下文中执行，确保可以访问所有任务
+        // 这解决了在 ScheduledExecutorService 线程池中执行时无法访问 Jenkins 任务的问题
+        // 使用 ACL.as(SYSTEM) 确保有完整的系统权限
+        try (ACLContext ignored = ACL.as(ACL.SYSTEM)) {
+            executeTaskWithAuth(task);
+        }
+    }
+    
+    /**
+     * 在认证上下文中执行任务
+     */
+    private void executeTaskWithAuth(ScheduledBuildTask task) {
         try {
             Jenkins jenkins = Jenkins.getInstanceOrNull();
             if (jenkins == null) {
@@ -199,6 +213,8 @@ public class ScheduledBuildManager extends GlobalConfiguration {
                 return;
             }
 
+            LOGGER.info(String.format("开始执行预约任务: %s，任务名称: %s", task.getId(), task.getJobName()));
+            
             // 尝试多种方式查找任务，提高兼容性
             Job<?, ?> job = findJob(jenkins, task.getJobName());
             if (job == null) {
@@ -235,6 +251,8 @@ public class ScheduledBuildManager extends GlobalConfiguration {
                 } else {
                     LOGGER.warning("触发预约构建失败: " + task);
                 }
+            } else {
+                LOGGER.warning(String.format("任务 %s 不是 Queue.Task 类型，无法触发构建", task.getJobName()));
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "执行预约构建任务失败: " + task, e);
@@ -356,25 +374,59 @@ public class ScheduledBuildManager extends GlobalConfiguration {
             LOGGER.warning(String.format("方式4失败: 遍历查找 %s 出错: %s", jobName, e.getMessage()));
         }
         
-        // 所有方式都失败，记录详细信息
+        // 所有方式都失败，记录详细诊断信息
         LOGGER.severe(String.format("所有查找方式都失败，无法找到任务: %s", jobName));
+        
+        // 诊断信息：当前认证上下文
+        try {
+            org.springframework.security.core.Authentication auth = 
+                org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null) {
+                LOGGER.info(String.format("当前认证上下文: %s (权限: %s)", 
+                    auth.getName(), 
+                    auth.getAuthorities()));
+            } else {
+                LOGGER.warning("当前认证上下文为 null");
+            }
+        } catch (Exception e) {
+            LOGGER.warning("获取认证上下文失败: " + e.getMessage());
+        }
+        
+        // 诊断信息：Jenkins 环境
+        LOGGER.info(String.format("Jenkins 类型: %s", jenkins.getClass().getName()));
+        LOGGER.info(String.format("Jenkins 版本: %s", Jenkins.VERSION));
+        LOGGER.info(String.format("当前线程: %s", Thread.currentThread().getName()));
+        
+        // 列出可用的任务
         LOGGER.info("可用的任务列表:");
         try {
+            List<Item> allItems = jenkins.getAllItems();
+            LOGGER.info(String.format("总共 %d 个项目", allItems.size()));
+            
             int count = 0;
-            for (Item item : jenkins.getAllItems()) {
+            int jobCount = 0;
+            for (Item item : allItems) {
                 if (item instanceof Job) {
+                    jobCount++;
                     Job<?, ?> job = (Job<?, ?>) item;
-                    LOGGER.info(String.format("  - %s (类型: %s, fullName: %s)", 
-                        job.getName(), job.getClass().getSimpleName(), job.getFullName()));
-                    count++;
-                    if (count >= 20) {
-                        LOGGER.info("  ... (只显示前20个任务)");
-                        break;
+                    if (count < 20) {
+                        LOGGER.info(String.format("  - %s (类型: %s, fullName: %s)", 
+                            job.getName(), job.getClass().getSimpleName(), job.getFullName()));
+                        count++;
                     }
                 }
             }
+            
+            if (jobCount == 0) {
+                LOGGER.warning("未找到任何任务！可能是权限问题或在错误的上下文中执行");
+            } else {
+                LOGGER.info(String.format("总共 %d 个任务", jobCount));
+                if (jobCount > 20) {
+                    LOGGER.info("  ... (只显示前20个任务)");
+                }
+            }
         } catch (Exception e) {
-            LOGGER.warning("列出任务失败: " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "列出任务失败", e);
         }
         
         return null;
