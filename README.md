@@ -256,13 +256,47 @@ A: 当前版本需要逐个添加。如需批量操作，可以通过Jenkins API
 ### Q: 支持循环预约吗（如每天、每周）？
 A: 当前版本不支持循环预约。建议使用Jenkins内置的"定时构建"功能来实现循环任务。本插件专注于"一次性"的预约构建。
 
+## 📚 文档
+
+- **[快速开始](docs/QUICKSTART.md)** - 5分钟快速上手
+- **[安装指南](docs/INSTALLATION_GUIDE.md)** - 详细安装步骤  
+- **[使用说明](docs/USAGE_CN.md)** - 完整功能说明
+- **[架构设计](docs/ARCHITECTURE.md)** - 系统架构文档
+- **[贡献指南](docs/CONTRIBUTING.md)** - 如何参与开发
+- **[故障排查](docs/TROUBLESHOOTING.md)** - 常见问题解决
+- **[变更日志](docs/CHANGELOG.md)** - 版本更新记录
+- **[完整文档列表](docs/)** - 查看所有文档
+
+## 🔧 脚本工具
+
+- **[scripts/build.sh](scripts/)** - 构建插件 HPI
+- **[scripts/start-jenkins.sh](scripts/)** - 启动测试环境
+- **[scripts/update-plugin.sh](scripts/)** - 热更新插件
+- **[scripts/verify-installation.groovy](scripts/)** - 验证安装
+- **[完整脚本列表](scripts/)** - 查看所有工具
+
 ## 开发
 
 ### 项目结构
 
 ```
 jenkins-scheduled-build-plugin/
-├── pom.xml                          # Maven配置
+├── pom.xml                          # Maven 配置
+├── docker-compose.yml               # Docker 测试环境
+├── Jenkinsfile                      # CI/CD 流水线
+├── docs/                            # 📚 所有文档
+│   ├── README.md                    # 文档索引
+│   ├── QUICKSTART.md                # 快速开始
+│   ├── INSTALLATION_GUIDE.md        # 安装指南
+│   ├── ARCHITECTURE.md              # 架构文档
+│   ├── CONTRIBUTING.md              # 贡献指南
+│   └── ...                          # 更多文档
+├── scripts/                         # 🔧 开发脚本
+│   ├── README.md                    # 脚本说明
+│   ├── build.sh                     # 构建脚本
+│   ├── start-jenkins.sh             # 启动测试环境
+│   ├── update-plugin.sh             # 更新插件
+│   └── ...                          # 更多脚本
 ├── src/
 │   └── main/
 │       ├── java/
@@ -270,7 +304,8 @@ jenkins-scheduled-build-plugin/
 │       │       ├── ScheduledBuildTask.java       # 数据模型
 │       │       ├── ScheduledBuildManager.java    # 任务管理器
 │       │       ├── ScheduledBuildProperty.java   # 任务属性
-│       │       └── ScheduledBuildAction.java     # Web界面
+│       │       ├── ScheduledBuildAction.java     # Web 界面
+│       │       └── PluginImpl.java              # 插件初始化
 │       └── resources/
 │           ├── index.jelly                       # 插件描述
 │           └── io/jenkins/plugins/scheduledbuild/
@@ -281,7 +316,27 @@ jenkins-scheduled-build-plugin/
 │               │   └── help.html                # 帮助文档
 │               └── ScheduledBuildAction/
 │                   └── index.jelly              # 主页面
-└── README.md
+├── init-scripts/                    # Jenkins 初始化脚本
+│   ├── 01-create-admin-user.groovy  # 创建管理员
+│   └── 02-create-demo-job.groovy    # 创建演示任务
+├── .github/
+│   └── workflows/                   # GitHub Actions
+│       ├── ci.yml                   # 持续集成
+│       ├── pr-check.yml             # PR 检查
+│       └── release.yml              # 发布流程
+└── README.md                        # 项目主页
+```
+
+### 构建插件
+
+```bash
+./scripts/build.sh
+```
+
+### 启动测试环境
+
+```bash
+./scripts/start-jenkins.sh
 ```
 
 ### 运行测试
@@ -292,11 +347,16 @@ mvn test
 
 ### 代码规范
 
-项目遵循Jenkins插件开发的最佳实践。
+项目遵循 Jenkins 插件开发的最佳实践。详见 [贡献指南](docs/CONTRIBUTING.md)。
 
 ## 贡献
 
-欢迎提交Issue和Pull Request！
+欢迎提交 Issue 和 Pull Request！
+
+- 📖 阅读 [贡献指南](docs/CONTRIBUTING.md)
+- 🐛 提交 [Bug 报告](https://github.com/zsjohny/jenkins-scheduled-build-plugin/issues/new)
+- 💡 提出 [功能建议](https://github.com/zsjohny/jenkins-scheduled-build-plugin/issues/new)
+- 🔀 发起 [Pull Request](https://github.com/zsjohny/jenkins-scheduled-build-plugin/pulls)
 
 ## 许可证
 
