@@ -48,56 +48,73 @@
                     margin-bottom: 8px;
                     font-size: 14px;
                 }
-                .form-input, .form-select {
-                    width: 100%;
-                    max-width: 500px;
-                    padding: 10px 12px;
-                    border: 1px solid #ddd;
-                    border-radius: 4px;
-                    font-size: 14px;
-                    transition: border-color 0.3s;
-                }
-                .form-input:focus, .form-select:focus {
-                    outline: none;
-                    border-color: #667eea;
-                    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-                }
-                .form-hint {
-                    color: #888;
-                    font-size: 12px;
-                    margin-top: 5px;
-                    font-style: italic;
-                }
-                .param-section {
-                    background: #f8f9fa;
-                    padding: 20px;
-                    border-radius: 6px;
+                /* 保持 Jenkins 原生样式，只添加必要的自定义样式 */
+                .scheduled-build-container .form-section {
                     margin-top: 20px;
-                    border: 1px solid #e9ecef;
                 }
-                .param-section h3 {
+                
+                /* 确保参数部分有适当的间距 */
+                .scheduled-build-container .form-section h3 {
                     margin-top: 0;
-                    color: #444;
-                    font-size: 16px;
                     margin-bottom: 15px;
-                }
-                .param-item {
-                    background: white;
-                    padding: 15px;
-                    margin-bottom: 12px;
-                    border-radius: 4px;
-                    border: 1px solid #dee2e6;
-                }
-                .param-name {
+                    color: #333;
+                    font-size: 16px;
                     font-weight: 600;
-                    color: #495057;
-                    margin-bottom: 8px;
-                    font-size: 14px;
                 }
-                .param-desc {
-                    color: #6c757d;
-                    font-size: 12px;
-                    margin-top: 5px;
+                
+                /* 参数标签样式 */
+                .scheduled-build-container .form-label {
+                    font-weight: bold !important;
+                    color: #333 !important;
+                    font-size: 14px !important;
+                }
+                
+                /* 参数描述样式 */
+                .scheduled-build-container .form-description {
+                    color: #666 !important;
+                    font-size: 12px !important;
+                    font-style: italic !important;
+                }
+                
+                /* 必填参数样式 */
+                .scheduled-build-container .form-label[required] {
+                    color: #d73527 !important;
+                }
+                
+                /* 参数输入框样式 */
+                .scheduled-build-container .form-input,
+                .scheduled-build-container .form-textarea,
+                .scheduled-build-container .form-select {
+                    border: 1px solid #ccc !important;
+                    border-radius: 4px !important;
+                    padding: 8px !important;
+                    font-size: 14px !important;
+                }
+                
+                /* 参数输入框焦点样式 */
+                .scheduled-build-container .form-input:focus,
+                .scheduled-build-container .form-textarea:focus,
+                .scheduled-build-container .form-select:focus {
+                    border-color: #4a90e2 !important;
+                    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2) !important;
+                }
+                
+                /* 自定义按钮样式 */
+                .btn-primary {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    padding: 12px 30px;
+                    font-size: 15px;
+                    font-weight: 600;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    box-shadow: 0 2px 4px rgba(102, 126, 234, 0.3);
+                }
+                .btn-primary:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 8px rgba(102, 126, 234, 0.4);
                 }
                 .btn-primary {
                     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -261,9 +278,83 @@
                     });
                 }
                 
+                // 将 datetime-local 输入转换为 Jenkins 期望的格式
+                function setupDateTimeInput() {
+                    var scheduledTimeInput = document.querySelector('input[name="scheduledTime"]');
+                    if (scheduledTimeInput) {
+                        // 创建 datetime-local 输入
+                        var datetimeInput = document.createElement('input');
+                        datetimeInput.type = 'datetime-local';
+                        datetimeInput.name = 'scheduledTime';
+                        datetimeInput.required = true;
+                        datetimeInput.style.width = '100%';
+                        datetimeInput.style.padding = '8px';
+                        datetimeInput.style.border = '1px solid #ccc';
+                        datetimeInput.style.borderRadius = '4px';
+                        
+                        // 设置默认值为当前时间后1小时
+                        var now = new Date();
+                        now.setHours(now.getHours() + 1);
+                        var year = now.getFullYear();
+                        var month = String(now.getMonth() + 1).padStart(2, '0');
+                        var day = String(now.getDate()).padStart(2, '0');
+                        var hours = String(now.getHours()).padStart(2, '0');
+                        var minutes = String(now.getMinutes()).padStart(2, '0');
+                        datetimeInput.value = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+                        
+                        // 替换原始输入
+                        scheduledTimeInput.parentNode.replaceChild(datetimeInput, scheduledTimeInput);
+                        
+                        // 在表单提交时转换格式
+                        var form = datetimeInput.closest('form');
+                        if (form) {
+                            form.addEventListener('submit', function(e) {
+                                var datetimeValue = datetimeInput.value;
+                                if (datetimeValue) {
+                                    // 转换为 Jenkins 期望的格式 (yyyy-MM-dd'T'HH:mm)
+                                    var hiddenInput = document.createElement('input');
+                                    hiddenInput.type = 'hidden';
+                                    hiddenInput.name = 'scheduledTime';
+                                    hiddenInput.value = datetimeValue;
+                                    form.appendChild(hiddenInput);
+                                }
+                            });
+                        }
+                    }
+                }
+                
+                // 初始化参数渲染
+                function initializeParameterRendering() {
+                    // 确保 Jenkins 表单组件正确初始化
+                    if (typeof Behaviour !== 'undefined') {
+                        Behaviour.applySubtree(document);
+                    }
+                    
+                    // 为参数添加必要的样式和功能
+                    var paramEntries = document.querySelectorAll('.scheduled-build-container .form-section .form-entry');
+                    paramEntries.forEach(function(entry) {
+                        var title = entry.querySelector('.form-label');
+                        if (title) {
+                            // 确保标题有正确的样式
+                            title.style.fontWeight = 'bold';
+                            title.style.color = '#333';
+                        }
+                        
+                        // 为必填参数添加红色星号
+                        var required = entry.querySelector('.form-label[required]');
+                        if (required) {
+                            var asterisk = document.createElement('span');
+                            asterisk.innerHTML = ' <span style="color:red"><strong>【必填】</strong></span>';
+                            required.appendChild(asterisk);
+                        }
+                    });
+                }
+                
                 // 页面加载后立即更新一次
                 window.addEventListener('DOMContentLoaded', function() {
                     updateCountdowns();
+                    setupDateTimeInput();
+                    initializeParameterRendering();
                     // 每秒更新一次
                     setInterval(updateCountdowns, 1000);
                 });
@@ -274,212 +365,191 @@
                     <h1>⏰ 预约构建管理</h1>
                 </div>
             
-                <!-- 添加新预约表单 -->
+            <!-- 添加新预约表单 -->
                 <div class="add-schedule-card">
                     <h2>📝 添加新预约</h2>
-                    <form method="post" action="schedule">
-                        <div class="form-row">
-                            <label for="scheduledTime" class="form-label">📅 预约时间 *</label>
-                            <input type="datetime-local" 
-                                   id="scheduledTime" 
-                                   name="scheduledTime" 
-                                   required="required"
-                                   class="form-input"/>
-                            <div class="form-hint">
-                                选择构建执行的日期和时间
-                            </div>
-                        </div>
+                    <f:form method="post" action="schedule">
+                        <f:entry title="📅 预约时间" description="选择构建执行的日期和时间">
+                            <f:textbox name="scheduledTime" 
+                                       value=""
+                                       checkUrl="'checkTime'"
+                                       checkMethod="post"/>
+                        </f:entry>
                         
-                        <div class="form-row">
-                            <label for="description" class="form-label">📄 描述</label>
-                            <input type="text" 
-                                   id="description" 
-                                   name="description" 
-                                   class="form-input"
-                                   placeholder="预约说明（可选）"/>
-                            <div class="form-hint">
-                                为这次预约添加说明，方便后续识别
-                            </div>
-                        </div>
+                        <f:entry title="📄 描述" description="为这次预约添加说明，方便后续识别">
+                            <f:textbox name="description" 
+                                       value=""
+                                       placeholder="预约说明（可选）"/>
+                        </f:entry>
                         
                         <!-- 参数 -->
                         <j:if test="${!it.jobParameters.isEmpty()}">
-                            <div class="param-section">
-                                <h3>🔧 构建参数</h3>
+                            <f:section title="🔧 构建参数">
                                 <j:forEach var="param" items="${it.jobParameters}">
-                                    <div class="param-item">
-                                        <div class="param-name">${param.name}</div>
+                                    <f:entry title="${param.name}" description="${param.description}">
                                         <j:choose>
                                             <j:when test="${param.class.simpleName == 'BooleanParameterDefinition'}">
-                                                <div class="checkbox-wrapper">
-                                                    <input type="checkbox" 
-                                                           id="param_${param.name}" 
-                                                           name="param_${param.name}"
-                                                           value="true"
-                                                           checked="${param.defaultValue}"/>
-                                                    <label for="param_${param.name}">启用</label>
-                                                </div>
+                                                <f:checkbox name="param_${param.name}" 
+                                                           checked="${param.defaultParameterValue.value}"
+                                                           value="true"/>
                                             </j:when>
                                             <j:when test="${param.class.simpleName == 'ChoiceParameterDefinition'}">
-                                                <select id="param_${param.name}" 
-                                                        name="param_${param.name}"
-                                                        class="form-select">
+                                                <f:select name="param_${param.name}">
                                                     <j:forEach var="choice" items="${param.choices}">
-                                                        <option value="${choice}">${choice}</option>
+                                                        <f:option value="${choice}" selected="${choice == param.defaultParameterValue.value}">${choice}</f:option>
                                                     </j:forEach>
-                                                </select>
+                                                </f:select>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'TextParameterDefinition'}">
+                                                <f:textarea name="param_${param.name}" 
+                                                           value="${param.defaultParameterValue.value}"
+                                                           rows="3"/>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'PasswordParameterDefinition'}">
+                                                <f:password name="param_${param.name}" 
+                                                           value="${param.defaultParameterValue.value}"/>
                                             </j:when>
                                             <j:otherwise>
-                                                <input type="text" 
-                                                       id="param_${param.name}" 
-                                                       name="param_${param.name}"
-                                                       value="${param.defaultParameterValue.value}"
-                                                       class="form-input"/>
+                                                <f:textbox name="param_${param.name}" 
+                                                          value="${param.defaultParameterValue.value}"/>
                                             </j:otherwise>
                                         </j:choose>
-                                        <j:if test="${param.description != null and param.description != ''}">
-                                            <div class="param-desc">
-                                                ${param.description}
-                                            </div>
-                                        </j:if>
-                                    </div>
+                                    </f:entry>
                                 </j:forEach>
-                            </div>
+                            </f:section>
                         </j:if>
                         
-                        <div class="form-row" style="margin-top: 25px;">
-                            <button type="submit" class="btn-primary">
-                                ✓ 添加预约
-                            </button>
-                        </div>
-                    </form>
+                        <f:block>
+                            <f:submit value="✓ 添加预约" class="btn-primary"/>
+                        </f:block>
+                    </f:form>
                 </div>
 
-                <!-- 待执行的预约 -->
+            <!-- 待执行的预约 -->
                 <div class="schedule-list-card">
                     <h2>
                         🚀 待执行的预约
                         <span class="schedule-count">${it.pendingBuilds.size()}</span>
                     </h2>
-                    <j:choose>
-                        <j:when test="${it.pendingBuilds.isEmpty()}">
+            <j:choose>
+                <j:when test="${it.pendingBuilds.isEmpty()}">
                             <div class="no-data">
                                 📭 暂无待执行的预约
                             </div>
-                        </j:when>
-                        <j:otherwise>
-                            <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
-                                <thead>
-                                    <tr>
+                </j:when>
+                <j:otherwise>
+                    <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
+                        <thead>
+                            <tr>
                                         <th style="width: 180px;">预约时间</th>
                                         <th style="width: 150px;">⏱️ 倒计时</th>
-                                        <th>描述</th>
+                                <th>描述</th>
                                         <th style="width: 200px;">参数</th>
                                         <th style="width: 100px;">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <j:forEach var="task" items="${it.pendingBuilds}">
-                                        <tr>
-                                            <td>${it.formatDateTime(task.scheduledTime)}</td>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <j:forEach var="task" items="${it.pendingBuilds}">
+                                <tr>
+                                    <td>${it.formatDateTime(task.scheduledTime)}</td>
                                             <td>
                                                 <span class="countdown" data-target="${task.scheduledTime}">
                                                     ${it.getRelativeTime(task.scheduledTime)}
                                                 </span>
                                             </td>
-                                            <td>${task.description}</td>
+                                    <td>${task.description}</td>
                                             <td>
                                                 <div class="param-display">
-                                                    ${task.parametersString}
+                                        ${task.parametersString}
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <form method="post" action="cancel" style="display: inline;">
-                                                    <input type="hidden" name="taskId" value="${task.id}"/>
+                                    </td>
+                                    <td>
+                                        <form method="post" action="cancel" style="display: inline;">
+                                            <input type="hidden" name="taskId" value="${task.id}"/>
                                                     <button type="submit" class="btn-danger">
                                                         ✗ 取消
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    </j:forEach>
-                                </tbody>
-                            </table>
-                        </j:otherwise>
-                    </j:choose>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            </j:forEach>
+                        </tbody>
+                    </table>
+                </j:otherwise>
+            </j:choose>
                 </div>
 
-                <!-- 所有预约历史 -->
+            <!-- 所有预约历史 -->
                 <div class="schedule-list-card">
                     <h2>
                         📚 所有预约记录
                         <span class="schedule-count">${it.scheduledBuilds.size()}</span>
                     </h2>
-                    <j:choose>
-                        <j:when test="${it.scheduledBuilds.isEmpty()}">
+            <j:choose>
+                <j:when test="${it.scheduledBuilds.isEmpty()}">
                             <div class="no-data">
                                 📭 暂无预约记录
                             </div>
-                        </j:when>
-                        <j:otherwise>
-                            <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
-                                <thead>
-                                    <tr>
+                </j:when>
+                <j:otherwise>
+                    <table class="sortable pane bigtable" style="width: 100%; margin-top: 10px;">
+                        <thead>
+                            <tr>
                                         <th style="width: 180px;">预约时间</th>
                                         <th style="width: 120px;">状态</th>
-                                        <th>描述</th>
+                                <th>描述</th>
                                         <th style="width: 200px;">参数</th>
                                         <th style="width: 140px;">操作</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <j:forEach var="task" items="${it.scheduledBuilds}">
-                                        <tr>
-                                            <td>${it.formatDateTime(task.scheduledTime)}</td>
-                                            <td>
-                                                <j:choose>
-                                                    <j:when test="${task.executed}">
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <j:forEach var="task" items="${it.scheduledBuilds}">
+                                <tr>
+                                    <td>${it.formatDateTime(task.scheduledTime)}</td>
+                                    <td>
+                                        <j:choose>
+                                            <j:when test="${task.executed}">
                                                         <span class="status-badge status-executed">✓ 已执行</span>
-                                                    </j:when>
-                                                    <j:when test="${task.cancelled}">
+                                            </j:when>
+                                            <j:when test="${task.cancelled}">
                                                         <span class="status-badge status-cancelled">✗ 已取消</span>
-                                                    </j:when>
-                                                    <j:when test="${task.pending}">
+                                            </j:when>
+                                            <j:when test="${task.pending}">
                                                         <span class="status-badge status-pending">⏳ 待执行</span>
-                                                    </j:when>
-                                                    <j:otherwise>
+                                            </j:when>
+                                            <j:otherwise>
                                                         <span class="status-badge status-expired">⚠ 已过期</span>
-                                                    </j:otherwise>
-                                                </j:choose>
-                                            </td>
-                                            <td>${task.description}</td>
+                                            </j:otherwise>
+                                        </j:choose>
+                                    </td>
+                                    <td>${task.description}</td>
                                             <td>
                                                 <div class="param-display">
-                                                    ${task.parametersString}
+                                        ${task.parametersString}
                                                 </div>
-                                            </td>
-                                            <td>
-                                                <j:if test="${task.pending}">
-                                                    <form method="post" action="cancel" style="display: inline; margin-right: 5px;">
-                                                        <input type="hidden" name="taskId" value="${task.id}"/>
+                                    </td>
+                                    <td>
+                                        <j:if test="${task.pending}">
+                                            <form method="post" action="cancel" style="display: inline; margin-right: 5px;">
+                                                <input type="hidden" name="taskId" value="${task.id}"/>
                                                         <button type="submit" class="btn-danger">
                                                             ✗ 取消
-                                                        </button>
-                                                    </form>
-                                                </j:if>
-                                                <form method="post" action="delete" style="display: inline;">
-                                                    <input type="hidden" name="taskId" value="${task.id}"/>
+                                                </button>
+                                            </form>
+                                        </j:if>
+                                        <form method="post" action="delete" style="display: inline;">
+                                            <input type="hidden" name="taskId" value="${task.id}"/>
                                                     <button type="submit" class="btn-secondary">
                                                         🗑️ 删除
-                                                    </button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                    </j:forEach>
-                                </tbody>
-                            </table>
-                        </j:otherwise>
-                    </j:choose>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            </j:forEach>
+                        </tbody>
+                    </table>
+                </j:otherwise>
+            </j:choose>
                 </div>
             </div>
         </l:main-panel>
