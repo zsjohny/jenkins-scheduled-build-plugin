@@ -9,7 +9,6 @@ import jenkins.model.Jenkins;
 import net.sf.json.JSONObject;
 import org.kohsuke.stapler.StaplerRequest;
 
-import java.io.*;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.logging.Level;
@@ -28,8 +27,10 @@ public class ScheduledBuildManager extends GlobalConfiguration {
     private static volatile ScheduledBuildManager instance;
     
     private final Map<String, ScheduledBuildTask> tasks = new ConcurrentHashMap<>();
+    private final Map<String, RecurringScheduleRule> recurringRules = new ConcurrentHashMap<>();
     // transient 避免序列化线程池，会在构造函数和 readResolve 中初始化
     private transient ScheduledExecutorService scheduler;
+    private transient ScheduledExecutorService recurringScheduler;
 
     public ScheduledBuildManager() {
         instance = this;
@@ -38,6 +39,8 @@ public class ScheduledBuildManager extends GlobalConfiguration {
         load();
         // 启动时恢复所有未执行的任务
         recoverPendingTasks();
+        // 启动周期性规则处理器
+        startRecurringScheduleProcessor();
         LOGGER.info("ScheduledBuildManager 已初始化");
     }
     
@@ -47,7 +50,11 @@ public class ScheduledBuildManager extends GlobalConfiguration {
     private void initScheduler() {
         if (scheduler == null) {
             scheduler = Executors.newScheduledThreadPool(5);
-            LOGGER.info("调度器已初始化");
+            LOGGER.info("任务调度器已初始化");
+        }
+        if (recurringScheduler == null) {
+            recurringScheduler = Executors.newScheduledThreadPool(2);
+            LOGGER.info("周期性规则调度器已初始化");
         }
     }
     
@@ -56,6 +63,7 @@ public class ScheduledBuildManager extends GlobalConfiguration {
      */
     private Object readResolve() {
         initScheduler();
+        startRecurringScheduleProcessor();
         return this;
     }
 
@@ -296,6 +304,203 @@ public class ScheduledBuildManager extends GlobalConfiguration {
         }
         
         return toRemove.size();
+    }
+
+    // ==================== 周期性规则管理 ====================
+
+    /**
+     * 添加周期性规则
+     */
+    public synchronized RecurringScheduleRule addRecurringRule(RecurringScheduleRule rule) {
+        recurringRules.put(rule.getId(), rule);
+        save();
+        LOGGER.info("添加周期性规则: " + rule);
+        
+        // 立即为此规则生成第一个任务
+        generateTasksForRule(rule);
+        
+        return rule;
+    }
+
+    /**
+     * 删除周期性规则
+     */
+    public synchronized boolean removeRecurringRule(String ruleId) {
+        RecurringScheduleRule rule = recurringRules.remove(ruleId);
+        if (rule != null) {
+            // 可选：同时删除由该规则生成的待执行任务
+            cancelTasksForRule(ruleId);
+            save();
+            LOGGER.info("删除周期性规则: " + rule);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 更新周期性规则
+     */
+    public synchronized boolean updateRecurringRule(RecurringScheduleRule rule) {
+        if (recurringRules.containsKey(rule.getId())) {
+            recurringRules.put(rule.getId(), rule);
+            save();
+            LOGGER.info("更新周期性规则: " + rule);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 启用/禁用周期性规则
+     */
+    public synchronized boolean toggleRecurringRule(String ruleId, boolean enabled) {
+        RecurringScheduleRule rule = recurringRules.get(ruleId);
+        if (rule != null) {
+            rule.setEnabled(enabled);
+            save();
+            LOGGER.info(String.format("%s周期性规则: %s", enabled ? "启用" : "禁用", rule));
+            
+            if (enabled) {
+                // 启用时生成任务
+                generateTasksForRule(rule);
+            } else {
+                // 禁用时取消待执行任务
+                cancelTasksForRule(ruleId);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 获取周期性规则
+     */
+    public RecurringScheduleRule getRecurringRule(String ruleId) {
+        return recurringRules.get(ruleId);
+    }
+
+    /**
+     * 获取所有周期性规则
+     */
+    public List<RecurringScheduleRule> getAllRecurringRules() {
+        return new ArrayList<>(recurringRules.values());
+    }
+
+    /**
+     * 获取指定任务的周期性规则
+     */
+    public List<RecurringScheduleRule> getRecurringRulesForJob(String jobName) {
+        return recurringRules.values().stream()
+                .filter(rule -> rule.getJobName().equals(jobName))
+                .sorted(Comparator.comparingLong(RecurringScheduleRule::getCreatedTime))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 启动周期性规则处理器
+     * 每小时检查一次，为周期性规则生成新任务
+     */
+    private void startRecurringScheduleProcessor() {
+        if (recurringScheduler == null) {
+            LOGGER.warning("周期性规则调度器未初始化");
+            return;
+        }
+        
+        // 每小时检查一次
+        recurringScheduler.scheduleAtFixedRate(() -> {
+            try {
+                processRecurringRules();
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "处理周期性规则失败", e);
+            }
+        }, 1, 60, TimeUnit.MINUTES);
+        
+        LOGGER.info("周期性规则处理器已启动，每小时检查一次");
+    }
+
+    /**
+     * 处理所有周期性规则，生成新任务
+     */
+    private void processRecurringRules() {
+        LOGGER.info("开始处理周期性规则...");
+        int generated = 0;
+        
+        for (RecurringScheduleRule rule : recurringRules.values()) {
+            if (rule.isEnabled()) {
+                if (generateTasksForRule(rule)) {
+                    generated++;
+                }
+            }
+        }
+        
+        if (generated > 0) {
+            LOGGER.info(String.format("为 %d 个周期性规则生成了新任务", generated));
+        }
+    }
+
+    /**
+     * 为指定规则生成任务
+     * @return 是否生成了新任务
+     */
+    private boolean generateTasksForRule(RecurringScheduleRule rule) {
+        if (!rule.isEnabled()) {
+            return false;
+        }
+
+        long now = System.currentTimeMillis();
+        Long nextTime = rule.getNextExecutionTime(now);
+        
+        if (nextTime == null) {
+            LOGGER.fine("规则 " + rule.getId() + " 没有下一次执行时间");
+            return false;
+        }
+
+        // 检查是否已经存在该规则在该时间点的任务
+        boolean exists = tasks.values().stream()
+                .anyMatch(task -> rule.getId().equals(task.getRecurringRuleId()) 
+                        && task.isPending()
+                        && Math.abs(task.getScheduledTime() - nextTime) < 60000); // 1分钟内视为同一时间
+
+        if (!exists) {
+            String description = String.format("[周期性] %s - %s", 
+                    rule.getScheduleDescription(), 
+                    rule.getDescription() != null ? rule.getDescription() : "");
+            
+            ScheduledBuildTask task = new ScheduledBuildTask(
+                    rule.getJobName(),
+                    nextTime,
+                    rule.getParameters(),
+                    description,
+                    rule.getId()
+            );
+            
+            tasks.put(task.getId(), task);
+            scheduleTask(task);
+            save();
+            
+            LOGGER.info(String.format("为周期性规则 %s 生成新任务: %s", rule.getId(), task));
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * 取消指定规则生成的所有待执行任务
+     */
+    private void cancelTasksForRule(String ruleId) {
+        int cancelled = 0;
+        for (ScheduledBuildTask task : tasks.values()) {
+            if (ruleId.equals(task.getRecurringRuleId()) && task.isPending()) {
+                task.setCancelled(true);
+                cancelled++;
+            }
+        }
+        
+        if (cancelled > 0) {
+            save();
+            LOGGER.info(String.format("取消了规则 %s 的 %d 个待执行任务", ruleId, cancelled));
+        }
     }
 
     @Override
