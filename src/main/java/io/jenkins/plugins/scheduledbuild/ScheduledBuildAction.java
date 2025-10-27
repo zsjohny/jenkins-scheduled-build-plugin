@@ -71,6 +71,18 @@ public class ScheduledBuildAction implements Action {
         }
         return manager.getPendingTasks(job.getFullName());
     }
+    
+    /**
+     * 获取周期性规则
+     */
+    public List<RecurringScheduleRule> getRecurringRules() {
+        ScheduledBuildManager manager = ScheduledBuildManager.get();
+        if (manager == null) {
+            LOGGER.warning("ScheduledBuildManager 未初始化");
+            return Collections.emptyList();
+        }
+        return manager.getRecurringRulesForJob(job.getFullName());
+    }
 
     /**
      * 获取任务的参数定义
@@ -230,6 +242,169 @@ public class ScheduledBuildAction implements Action {
         } catch (Exception e) {
             LOGGER.warning("删除预约构建记录失败: " + e.getMessage());
             throw new ServletException("删除预约构建记录失败: " + e.getMessage(), e);
+        }
+    }
+
+    // ==================== 周期性规则 API ====================
+
+    /**
+     * 添加周期性规则
+     */
+    @POST
+    public void doAddRecurringRule(StaplerRequest req, StaplerResponse rsp) 
+            throws IOException, ServletException {
+        
+        checkPermission();
+
+        try {
+            // 获取基本参数
+            String scheduleType = req.getParameter("scheduleType");
+            String description = req.getParameter("recurringDescription");
+            
+            // 获取构建参数
+            Map<String, String> parameters = new HashMap<>();
+            for (ParameterDefinition param : getJobParameters()) {
+                String value = req.getParameter("recurring_param_" + param.getName());
+                if (value != null && !value.isEmpty()) {
+                    parameters.put(param.getName(), value);
+                } else if (param.getDefaultParameterValue() != null) {
+                    parameters.put(param.getName(), 
+                                 param.getDefaultParameterValue().getValue().toString());
+                }
+            }
+
+            ScheduledBuildManager manager = ScheduledBuildManager.get();
+            if (manager == null) {
+                throw new IllegalStateException("ScheduledBuildManager 未初始化，请重启 Jenkins");
+            }
+
+            RecurringScheduleRule rule = null;
+            
+            switch (scheduleType) {
+                case "DAILY":
+                    String dailyTime = req.getParameter("dailyTime");
+                    rule = RecurringScheduleRule.createDaily(job.getFullName(), dailyTime, parameters, description);
+                    break;
+                    
+                case "WEEKLY":
+                    String weeklyTime = req.getParameter("weeklyTime");
+                    Set<Integer> weekDays = new HashSet<>();
+                    for (int i = 1; i <= 7; i++) {
+                        String dayParam = req.getParameter("weekDay" + i);
+                        if ("on".equals(dayParam) || "true".equals(dayParam)) {
+                            weekDays.add(i);
+                        }
+                    }
+                    if (weekDays.isEmpty()) {
+                        throw new IllegalArgumentException("请至少选择一个星期");
+                    }
+                    rule = RecurringScheduleRule.createWeekly(job.getFullName(), weekDays, weeklyTime, parameters, description);
+                    break;
+                    
+                case "MONTHLY":
+                    String monthlyTime = req.getParameter("monthlyTime");
+                    String monthDaysStr = req.getParameter("monthDays");
+                    Set<Integer> monthDays = new HashSet<>();
+                    if (monthDaysStr != null && !monthDaysStr.isEmpty()) {
+                        for (String day : monthDaysStr.split(",")) {
+                            try {
+                                int dayNum = Integer.parseInt(day.trim());
+                                if (dayNum >= 1 && dayNum <= 31) {
+                                    monthDays.add(dayNum);
+                                }
+                            } catch (NumberFormatException e) {
+                                // 忽略无效的日期
+                            }
+                        }
+                    }
+                    if (monthDays.isEmpty()) {
+                        throw new IllegalArgumentException("请至少选择一个日期");
+                    }
+                    rule = RecurringScheduleRule.createMonthly(job.getFullName(), monthDays, monthlyTime, parameters, description);
+                    break;
+                    
+                case "CRON":
+                    String cronExpression = req.getParameter("cronExpression");
+                    rule = RecurringScheduleRule.createCron(job.getFullName(), cronExpression, parameters, description);
+                    break;
+                    
+                default:
+                    throw new IllegalArgumentException("不支持的调度类型: " + scheduleType);
+            }
+
+            manager.addRecurringRule(rule);
+
+            LOGGER.info(String.format("用户 %s 为任务 %s 添加了周期性规则: %s",
+                    getCurrentUser(), job.getFullName(), rule));
+
+            // 重定向回预约构建页面
+            rsp.sendRedirect(".");
+        } catch (Exception e) {
+            LOGGER.warning("添加周期性规则失败: " + e.getMessage());
+            throw new ServletException("添加周期性规则失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 启用/禁用周期性规则
+     */
+    @POST
+    public void doToggleRecurringRule(StaplerRequest req, StaplerResponse rsp,
+                                     @QueryParameter("ruleId") String ruleId,
+                                     @QueryParameter("enabled") boolean enabled) 
+            throws IOException, ServletException {
+        
+        checkPermission();
+
+        try {
+            ScheduledBuildManager manager = ScheduledBuildManager.get();
+            if (manager == null) {
+                throw new IllegalStateException("ScheduledBuildManager 未初始化，请重启 Jenkins");
+            }
+            
+            boolean success = manager.toggleRecurringRule(ruleId, enabled);
+            if (success) {
+                LOGGER.info(String.format("用户 %s %s了周期性规则: %s",
+                        getCurrentUser(), enabled ? "启用" : "禁用", ruleId));
+            } else {
+                throw new IllegalArgumentException("规则不存在");
+            }
+
+            // 重定向回预约构建页面
+            rsp.sendRedirect(".");
+        } catch (Exception e) {
+            LOGGER.warning("切换周期性规则状态失败: " + e.getMessage());
+            throw new ServletException("切换周期性规则状态失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 删除周期性规则
+     */
+    @POST
+    public void doDeleteRecurringRule(StaplerRequest req, StaplerResponse rsp,
+                                     @QueryParameter("ruleId") String ruleId) 
+            throws IOException, ServletException {
+        
+        checkPermission();
+
+        try {
+            ScheduledBuildManager manager = ScheduledBuildManager.get();
+            if (manager == null) {
+                throw new IllegalStateException("ScheduledBuildManager 未初始化，请重启 Jenkins");
+            }
+            
+            boolean success = manager.removeRecurringRule(ruleId);
+            if (success) {
+                LOGGER.info(String.format("用户 %s 删除了周期性规则: %s",
+                        getCurrentUser(), ruleId));
+            }
+
+            // 重定向回预约构建页面
+            rsp.sendRedirect(".");
+        } catch (Exception e) {
+            LOGGER.warning("删除周期性规则失败: " + e.getMessage());
+            throw new ServletException("删除周期性规则失败: " + e.getMessage(), e);
         }
     }
 

@@ -21,6 +21,9 @@ public class ScheduledBuildTask implements Serializable {
     private final String description;
     private boolean cancelled;
     private boolean executed;
+    
+    // 关联的周期性规则ID（如果是由周期性规则生成的任务）
+    private String recurringRuleId;
 
     public ScheduledBuildTask(String jobName, long scheduledTime, Map<String, String> parameters, String description) {
         this.id = UUID.randomUUID().toString();
@@ -30,6 +33,22 @@ public class ScheduledBuildTask implements Serializable {
         this.description = description;
         this.cancelled = false;
         this.executed = false;
+        this.recurringRuleId = null;
+    }
+    
+    /**
+     * 构造函数：从周期性规则创建任务
+     */
+    public ScheduledBuildTask(String jobName, long scheduledTime, Map<String, String> parameters, 
+                             String description, String recurringRuleId) {
+        this.id = UUID.randomUUID().toString();
+        this.jobName = jobName;
+        this.scheduledTime = scheduledTime;
+        this.parameters = parameters != null ? new HashMap<>(parameters) : new HashMap<>();
+        this.description = description;
+        this.cancelled = false;
+        this.executed = false;
+        this.recurringRuleId = recurringRuleId;
     }
 
     public String getId() {
@@ -79,6 +98,21 @@ public class ScheduledBuildTask implements Serializable {
     public boolean isExpired() {
         return !executed && scheduledTime <= System.currentTimeMillis();
     }
+    
+    public String getRecurringRuleId() {
+        return recurringRuleId;
+    }
+    
+    public void setRecurringRuleId(String recurringRuleId) {
+        this.recurringRuleId = recurringRuleId;
+    }
+    
+    /**
+     * 是否由周期性规则生成
+     */
+    public boolean isFromRecurringRule() {
+        return recurringRuleId != null;
+    }
 
     /**
      * 获取参数的字符串表示
@@ -118,8 +152,8 @@ public class ScheduledBuildTask implements Serializable {
 
     @Override
     public String toString() {
-        return String.format("ScheduledBuildTask[id=%s, job=%s, time=%s, params=%s, cancelled=%s, executed=%s]",
-                id, jobName, new Date(scheduledTime), getParametersString(), cancelled, executed);
+        return String.format("ScheduledBuildTask[id=%s, job=%s, time=%s, params=%s, cancelled=%s, executed=%s, recurringRule=%s]",
+                id, jobName, new Date(scheduledTime), getParametersString(), cancelled, executed, recurringRuleId);
     }
 }
 

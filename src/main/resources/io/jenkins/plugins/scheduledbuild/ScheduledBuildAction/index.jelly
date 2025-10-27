@@ -235,6 +235,89 @@
                     margin-right: 8px;
                     cursor: pointer;
                 }
+                .schedule-type-selector {
+                    display: flex;
+                    gap: 10px;
+                    margin-bottom: 20px;
+                }
+                .schedule-type-option {
+                    flex: 1;
+                    padding: 15px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    text-align: center;
+                    transition: all 0.3s;
+                    background: white;
+                }
+                .schedule-type-option:hover {
+                    border-color: #667eea;
+                    background: #f8f9ff;
+                }
+                .schedule-type-option.active {
+                    border-color: #667eea;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                }
+                .schedule-type-content {
+                    display: none;
+                    padding: 20px;
+                    background: #f8f9fa;
+                    border-radius: 8px;
+                    margin-top: 20px;
+                }
+                .schedule-type-content.active {
+                    display: block;
+                }
+                .weekday-selector {
+                    display: flex;
+                    gap: 10px;
+                    flex-wrap: wrap;
+                }
+                .weekday-option {
+                    flex: 0 0 calc(14.28% - 10px);
+                    padding: 10px;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 6px;
+                    text-align: center;
+                    cursor: pointer;
+                    user-select: none;
+                    transition: all 0.2s;
+                }
+                .weekday-option:hover {
+                    border-color: #667eea;
+                }
+                .weekday-option.selected {
+                    border-color: #667eea;
+                    background: #667eea;
+                    color: white;
+                }
+                .rule-card {
+                    background: #f8f9fa;
+                    padding: 15px;
+                    margin-bottom: 15px;
+                    border-radius: 8px;
+                    border-left: 4px solid #667eea;
+                }
+                .rule-card.disabled {
+                    opacity: 0.6;
+                    border-left-color: #999;
+                }
+                .rule-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 10px;
+                }
+                .rule-title {
+                    font-weight: 600;
+                    color: #333;
+                    font-size: 15px;
+                }
+                .rule-actions {
+                    display: flex;
+                    gap: 8px;
+                }
             </style>
             
             <script type="text/javascript">
@@ -350,6 +433,38 @@
                     });
                 }
                 
+                // 周期性规则：切换调度类型
+                function switchScheduleType(type) {
+                    // 更新选项卡样式
+                    document.querySelectorAll('.schedule-type-option').forEach(function(option) {
+                        option.classList.remove('active');
+                    });
+                    document.querySelector('.schedule-type-option[data-type="' + type + '"]').classList.add('active');
+                    
+                    // 更新内容区域
+                    document.querySelectorAll('.schedule-type-content').forEach(function(content) {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById('schedule-' + type.toLowerCase()).classList.add('active');
+                    
+                    // 更新隐藏的scheduleType字段
+                    document.getElementById('scheduleTypeInput').value = type;
+                }
+                
+                // 周期性规则：切换星期选择
+                function toggleWeekDay(day) {
+                    var option = document.querySelector('.weekday-option[data-day="' + day + '"]');
+                    var checkbox = document.getElementById('weekDay' + day);
+                    
+                    if (option.classList.contains('selected')) {
+                        option.classList.remove('selected');
+                        checkbox.checked = false;
+                    } else {
+                        option.classList.add('selected');
+                        checkbox.checked = true;
+                    }
+                }
+                
                 // 页面加载后立即更新一次
                 window.addEventListener('DOMContentLoaded', function() {
                     updateCountdowns();
@@ -357,6 +472,12 @@
                     initializeParameterRendering();
                     // 每秒更新一次
                     setInterval(updateCountdowns, 1000);
+                    
+                    // 初始化周期性规则表单
+                    var defaultType = 'DAILY';
+                    if (document.getElementById('scheduleTypeInput')) {
+                        switchScheduleType(defaultType);
+                    }
                 });
             </script>
             
@@ -423,6 +544,215 @@
                             <f:submit value="✓ 添加预约" class="btn-primary"/>
                         </f:block>
                     </f:form>
+                </div>
+
+            <!-- 添加周期性规则 -->
+                <div class="add-schedule-card">
+                    <h2>🔄 添加周期性规则</h2>
+                    <p style="color: #666; margin-bottom: 20px;">设置自动重复执行的构建任务，系统会根据规则自动生成预约</p>
+                    
+                    <f:form method="post" action="addRecurringRule">
+                        <input type="hidden" id="scheduleTypeInput" name="scheduleType" value="DAILY"/>
+                        
+                        <!-- 调度类型选择器 -->
+                        <div class="schedule-type-selector">
+                            <div class="schedule-type-option active" data-type="DAILY" onclick="switchScheduleType('DAILY')">
+                                <div style="font-size: 24px; margin-bottom: 5px;">📅</div>
+                                <div style="font-weight: 600;">每天</div>
+                                <div style="font-size: 12px; color: #666;">每天固定时间执行</div>
+                            </div>
+                            <div class="schedule-type-option" data-type="WEEKLY" onclick="switchScheduleType('WEEKLY')">
+                                <div style="font-size: 24px; margin-bottom: 5px;">📆</div>
+                                <div style="font-weight: 600;">每周</div>
+                                <div style="font-size: 12px; color: #666;">每周特定几天执行</div>
+                            </div>
+                            <div class="schedule-type-option" data-type="MONTHLY" onclick="switchScheduleType('MONTHLY')">
+                                <div style="font-size: 24px; margin-bottom: 5px;">🗓️</div>
+                                <div style="font-weight: 600;">每月</div>
+                                <div style="font-size: 12px; color: #666;">每月特定几号执行</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 每天配置 -->
+                        <div id="schedule-daily" class="schedule-type-content active">
+                            <f:entry title="⏰ 执行时间" description="选择每天执行的时间">
+                                <f:textbox name="dailyTime" 
+                                          value="09:00"
+                                          placeholder="例如: 09:00"/>
+                            </f:entry>
+                        </div>
+                        
+                        <!-- 每周配置 -->
+                        <div id="schedule-weekly" class="schedule-type-content">
+                            <f:entry title="📅 选择星期" description="点击选择要执行的星期">
+                                <div class="weekday-selector">
+                                    <div class="weekday-option" data-day="1" onclick="toggleWeekDay(1)">
+                                        <input type="checkbox" id="weekDay1" name="weekDay1" style="display:none;"/>
+                                        周一
+                                    </div>
+                                    <div class="weekday-option" data-day="2" onclick="toggleWeekDay(2)">
+                                        <input type="checkbox" id="weekDay2" name="weekDay2" style="display:none;"/>
+                                        周二
+                                    </div>
+                                    <div class="weekday-option" data-day="3" onclick="toggleWeekDay(3)">
+                                        <input type="checkbox" id="weekDay3" name="weekDay3" style="display:none;"/>
+                                        周三
+                                    </div>
+                                    <div class="weekday-option" data-day="4" onclick="toggleWeekDay(4)">
+                                        <input type="checkbox" id="weekDay4" name="weekDay4" style="display:none;"/>
+                                        周四
+                                    </div>
+                                    <div class="weekday-option" data-day="5" onclick="toggleWeekDay(5)">
+                                        <input type="checkbox" id="weekDay5" name="weekDay5" style="display:none;"/>
+                                        周五
+                                    </div>
+                                    <div class="weekday-option" data-day="6" onclick="toggleWeekDay(6)">
+                                        <input type="checkbox" id="weekDay6" name="weekDay6" style="display:none;"/>
+                                        周六
+                                    </div>
+                                    <div class="weekday-option" data-day="7" onclick="toggleWeekDay(7)">
+                                        <input type="checkbox" id="weekDay7" name="weekDay7" style="display:none;"/>
+                                        周日
+                                    </div>
+                                </div>
+                            </f:entry>
+                            
+                            <f:entry title="⏰ 执行时间" description="选择每周执行的时间">
+                                <f:textbox name="weeklyTime" 
+                                          value="09:00"
+                                          placeholder="例如: 09:00"/>
+                            </f:entry>
+                        </div>
+                        
+                        <!-- 每月配置 -->
+                        <div id="schedule-monthly" class="schedule-type-content">
+                            <f:entry title="📆 选择日期" description="输入要执行的日期，多个日期用逗号分隔（例如: 1,15,28）">
+                                <f:textbox name="monthDays" 
+                                          value="1"
+                                          placeholder="例如: 1,15,28"/>
+                            </f:entry>
+                            
+                            <f:entry title="⏰ 执行时间" description="选择每月执行的时间">
+                                <f:textbox name="monthlyTime" 
+                                          value="09:00"
+                                          placeholder="例如: 09:00"/>
+                            </f:entry>
+                        </div>
+                        
+                        <!-- 通用配置 -->
+                        <f:entry title="📄 描述" description="为这个周期性规则添加说明">
+                            <f:textbox name="recurringDescription" 
+                                      value=""
+                                      placeholder="规则说明（可选）"/>
+                        </f:entry>
+                        
+                        <!-- 参数 -->
+                        <j:if test="${!it.jobParameters.isEmpty()}">
+                            <f:section title="🔧 构建参数">
+                                <j:forEach var="param" items="${it.jobParameters}">
+                                    <f:entry title="${param.name}" description="${param.description}">
+                                        <j:choose>
+                                            <j:when test="${param.class.simpleName == 'BooleanParameterDefinition'}">
+                                                <f:checkbox name="recurring_param_${param.name}" 
+                                                           checked="${param.defaultParameterValue.value}"
+                                                           value="true"/>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'ChoiceParameterDefinition'}">
+                                                <f:select name="recurring_param_${param.name}">
+                                                    <j:forEach var="choice" items="${param.choices}">
+                                                        <f:option value="${choice}" selected="${choice == param.defaultParameterValue.value}">${choice}</f:option>
+                                                    </j:forEach>
+                                                </f:select>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'TextParameterDefinition'}">
+                                                <f:textarea name="recurring_param_${param.name}" 
+                                                           value="${param.defaultParameterValue.value}"
+                                                           rows="3"/>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'PasswordParameterDefinition'}">
+                                                <f:password name="recurring_param_${param.name}" 
+                                                           value="${param.defaultParameterValue.value}"/>
+                                            </j:when>
+                                            <j:otherwise>
+                                                <f:textbox name="recurring_param_${param.name}" 
+                                                          value="${param.defaultParameterValue.value}"/>
+                                            </j:otherwise>
+                                        </j:choose>
+                                    </f:entry>
+                                </j:forEach>
+                            </f:section>
+                        </j:if>
+                        
+                        <f:block>
+                            <f:submit value="✓ 添加周期性规则" class="btn-primary"/>
+                        </f:block>
+                    </f:form>
+                </div>
+
+            <!-- 周期性规则列表 -->
+                <div class="schedule-list-card">
+                    <h2>
+                        🔄 周期性规则
+                        <span class="schedule-count">${it.recurringRules.size()}</span>
+                    </h2>
+            <j:choose>
+                <j:when test="${it.recurringRules.isEmpty()}">
+                            <div class="no-data">
+                                📭 暂无周期性规则
+                            </div>
+                </j:when>
+                <j:otherwise>
+                            <j:forEach var="rule" items="${it.recurringRules}">
+                                <div class="rule-card ${rule.enabled ? '' : 'disabled'}">
+                                    <div class="rule-header">
+                                        <div class="rule-title">
+                                            <j:if test="${rule.enabled}">
+                                                ✅ 
+                                            </j:if>
+                                            <j:if test="${!rule.enabled}">
+                                                ⏸️ 
+                                            </j:if>
+                                            ${rule.scheduleDescription}
+                                        </div>
+                                        <div class="rule-actions">
+                                            <j:if test="${rule.enabled}">
+                                                <form method="post" action="toggleRecurringRule" style="display: inline;">
+                                                    <input type="hidden" name="ruleId" value="${rule.id}"/>
+                                                    <input type="hidden" name="enabled" value="false"/>
+                                                    <button type="submit" class="btn-secondary" title="禁用">
+                                                        ⏸️ 禁用
+                                                    </button>
+                                                </form>
+                                            </j:if>
+                                            <j:if test="${!rule.enabled}">
+                                                <form method="post" action="toggleRecurringRule" style="display: inline;">
+                                                    <input type="hidden" name="ruleId" value="${rule.id}"/>
+                                                    <input type="hidden" name="enabled" value="true"/>
+                                                    <button type="submit" class="btn-secondary" title="启用">
+                                                        ▶️ 启用
+                                                    </button>
+                                                </form>
+                                            </j:if>
+                                            <form method="post" action="deleteRecurringRule" style="display: inline;">
+                                                <input type="hidden" name="ruleId" value="${rule.id}"/>
+                                                <button type="submit" class="btn-danger" title="删除">
+                                                    🗑️ 删除
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                    <j:if test="${rule.description != null and rule.description != ''}">
+                                        <div style="color: #666; margin-bottom: 8px;">
+                                            ${rule.description}
+                                        </div>
+                                    </j:if>
+                                    <div class="param-display">
+                                        ${rule.parametersString}
+                                    </div>
+                                </div>
+                            </j:forEach>
+                </j:otherwise>
+            </j:choose>
                 </div>
 
             <!-- 待执行的预约 -->
