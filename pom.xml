@@ -14,7 +14,7 @@
 
     <groupId>io.jenkins.plugins</groupId>
     <artifactId>scheduled-build</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
     <packaging>hpi</packaging>
 
     <name>Scheduled Build Plugin</name>
