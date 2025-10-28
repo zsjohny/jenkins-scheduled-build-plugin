@@ -318,6 +318,63 @@
                     display: flex;
                     gap: 8px;
                 }
+                .modal {
+                    display: none;
+                    position: fixed;
+                    z-index: 1000;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                    height: 100%;
+                    background-color: rgba(0,0,0,0.5);
+                }
+                .modal-content {
+                    background-color: white;
+                    margin: 5% auto;
+                    padding: 30px;
+                    border-radius: 8px;
+                    width: 80%;
+                    max-width: 800px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+                }
+                .modal-header {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 20px;
+                    padding-bottom: 15px;
+                    border-bottom: 2px solid #667eea;
+                }
+                .modal-header h2 {
+                    margin: 0;
+                    color: #667eea;
+                }
+                .close {
+                    color: #aaa;
+                    font-size: 28px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    line-height: 20px;
+                }
+                .close:hover {
+                    color: #000;
+                }
+                .btn-edit {
+                    background: #ffc107;
+                    color: #333;
+                    padding: 6px 14px;
+                    border: none;
+                    border-radius: 4px;
+                    cursor: pointer;
+                    font-size: 13px;
+                    transition: background 0.3s;
+                    margin-right: 5px;
+                }
+                .btn-edit:hover {
+                    background: #ffb300;
+                }
             </style>
             
             <script type="text/javascript">
@@ -462,6 +519,73 @@
                     } else {
                         option.classList.add('selected');
                         checkbox.checked = true;
+                    }
+                }
+                
+                // 编辑预约：打开编辑模态框
+                function editScheduledBuild(taskId, scheduledTime, description, parameters) {
+                    var modal = document.getElementById('editModal');
+                    
+                    // 设置任务ID
+                    document.getElementById('editTaskId').value = taskId;
+                    
+                    // 转换时间戳为 datetime-local 格式
+                    var date = new Date(scheduledTime);
+                    var year = date.getFullYear();
+                    var month = String(date.getMonth() + 1).padStart(2, '0');
+                    var day = String(date.getDate()).padStart(2, '0');
+                    var hours = String(date.getHours()).padStart(2, '0');
+                    var minutes = String(date.getMinutes()).padStart(2, '0');
+                    var datetimeValue = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
+                    
+                    document.getElementById('editScheduledTime').value = datetimeValue;
+                    document.getElementById('editDescription').value = description || '';
+                    
+                    // 填充参数（如果有）
+                    if (parameters) {
+                        var paramsObj = {};
+                        try {
+                            // parameters是一个字符串，格式如 "key1=value1, key2=value2"
+                            if (parameters !== '无参数') {
+                                var pairs = parameters.split(', ');
+                                pairs.forEach(function(pair) {
+                                    var kv = pair.split('=');
+                                    if (kv.length === 2) {
+                                        paramsObj[kv[0].trim()] = kv[1].trim();
+                                    }
+                                });
+                            }
+                        } catch (e) {
+                            console.error('解析参数失败:', e);
+                        }
+                        
+                        // 填充参数输入框
+                        var paramInputs = document.querySelectorAll('#editParametersSection input, #editParametersSection select, #editParametersSection textarea');
+                        paramInputs.forEach(function(input) {
+                            var paramName = input.name.replace('param_', '');
+                            if (paramsObj[paramName]) {
+                                if (input.type === 'checkbox') {
+                                    input.checked = (paramsObj[paramName] === 'true');
+                                } else {
+                                    input.value = paramsObj[paramName];
+                                }
+                            }
+                        });
+                    }
+                    
+                    modal.style.display = 'block';
+                }
+                
+                // 编辑预约：关闭模态框
+                function closeEditModal() {
+                    document.getElementById('editModal').style.display = 'none';
+                }
+                
+                // 点击模态框外部关闭
+                window.onclick = function(event) {
+                    var modal = document.getElementById('editModal');
+                    if (event.target === modal) {
+                        closeEditModal();
                     }
                 }
                 
@@ -794,6 +918,10 @@
                                                 </div>
                                     </td>
                                     <td>
+                                                <button type="button" class="btn-edit" 
+                                                        onclick="editScheduledBuild('${task.id}', ${task.scheduledTime}, '${task.description}', '${task.parametersString}')">
+                                                    ✏️ 编辑
+                                                </button>
                                         <form method="post" action="cancel" style="display: inline;">
                                             <input type="hidden" name="taskId" value="${task.id}"/>
                                                     <button type="submit" class="btn-danger">
@@ -880,6 +1008,76 @@
                     </table>
                 </j:otherwise>
             </j:choose>
+                </div>
+            </div>
+            
+            <!-- 编辑预约模态框 -->
+            <div id="editModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>✏️ 编辑预约构建</h2>
+                        <span class="close" onclick="closeEditModal()">&times;</span>
+                    </div>
+                    
+                    <f:form method="post" action="update">
+                        <input type="hidden" id="editTaskId" name="taskId" value=""/>
+                        
+                        <f:entry title="📅 预约时间" description="选择新的构建执行时间">
+                            <input type="datetime-local" id="editScheduledTime" name="scheduledTime" 
+                                   required="required"
+                                   style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px;"/>
+                        </f:entry>
+                        
+                        <f:entry title="📄 描述" description="更新预约说明">
+                            <f:textbox id="editDescription" name="description" 
+                                       placeholder="预约说明（可选）"/>
+                        </f:entry>
+                        
+                        <!-- 参数 -->
+                        <j:if test="${!it.jobParameters.isEmpty()}">
+                            <div id="editParametersSection">
+                                <f:section title="🔧 构建参数">
+                                    <j:forEach var="param" items="${it.jobParameters}">
+                                        <f:entry title="${param.name}" description="${param.description}">
+                                            <j:choose>
+                                                <j:when test="${param.class.simpleName == 'BooleanParameterDefinition'}">
+                                                    <f:checkbox name="param_${param.name}" 
+                                                               checked="${param.defaultParameterValue.value}"
+                                                               value="true"/>
+                                                </j:when>
+                                                <j:when test="${param.class.simpleName == 'ChoiceParameterDefinition'}">
+                                                    <f:select name="param_${param.name}">
+                                                        <j:forEach var="choice" items="${param.choices}">
+                                                            <f:option value="${choice}" selected="${choice == param.defaultParameterValue.value}">${choice}</f:option>
+                                                        </j:forEach>
+                                                    </f:select>
+                                                </j:when>
+                                                <j:when test="${param.class.simpleName == 'TextParameterDefinition'}">
+                                                    <f:textarea name="param_${param.name}" 
+                                                               value="${param.defaultParameterValue.value}"
+                                                               rows="3"/>
+                                                </j:when>
+                                                <j:when test="${param.class.simpleName == 'PasswordParameterDefinition'}">
+                                                    <f:password name="param_${param.name}" 
+                                                               value="${param.defaultParameterValue.value}"/>
+                                                </j:when>
+                                                <j:otherwise>
+                                                    <f:textbox name="param_${param.name}" 
+                                                              value="${param.defaultParameterValue.value}"/>
+                                                </j:otherwise>
+                                            </j:choose>
+                                        </f:entry>
+                                    </j:forEach>
+                                </f:section>
+                            </div>
+                        </j:if>
+                        
+                        <f:block>
+                            <f:submit value="✓ 更新预约" class="btn-primary"/>
+                            <button type="button" class="btn-secondary" onclick="closeEditModal()" 
+                                    style="margin-left: 10px;">取消</button>
+                        </f:block>
+                    </f:form>
                 </div>
             </div>
         </l:main-panel>

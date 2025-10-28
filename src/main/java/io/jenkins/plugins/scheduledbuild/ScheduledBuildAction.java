@@ -73,6 +73,17 @@ public class ScheduledBuildAction implements Action {
     }
     
     /**
+     * 获取单个预约任务（用于编辑）
+     */
+    public ScheduledBuildTask getTask(String taskId) {
+        ScheduledBuildManager manager = ScheduledBuildManager.get();
+        if (manager == null) {
+            return null;
+        }
+        return manager.getTask(taskId);
+    }
+    
+    /**
      * 获取周期性规则
      */
     public List<RecurringScheduleRule> getRecurringRules() {
@@ -242,6 +253,75 @@ public class ScheduledBuildAction implements Action {
         } catch (Exception e) {
             LOGGER.warning("删除预约构建记录失败: " + e.getMessage());
             throw new ServletException("删除预约构建记录失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 更新预约构建
+     */
+    @POST
+    public void doUpdate(StaplerRequest req, StaplerResponse rsp,
+                        @QueryParameter("taskId") String taskId,
+                        @QueryParameter("scheduledTime") String scheduledTime,
+                        @QueryParameter("description") String description) 
+            throws IOException, ServletException {
+        
+        checkPermission();
+
+        try {
+            ScheduledBuildManager manager = ScheduledBuildManager.get();
+            if (manager == null) {
+                throw new IllegalStateException("ScheduledBuildManager 未初始化，请重启 Jenkins");
+            }
+            
+            // 获取原任务
+            ScheduledBuildTask task = manager.getTask(taskId);
+            if (task == null) {
+                throw new IllegalArgumentException("任务不存在: " + taskId);
+            }
+            
+            // 检查任务是否可编辑（只能编辑待执行的任务）
+            if (!task.isPending()) {
+                throw new IllegalArgumentException("只能编辑待执行的预约任务");
+            }
+            
+            // 解析新时间
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm");
+            Date scheduleDate = sdf.parse(scheduledTime);
+            long timestamp = scheduleDate.getTime();
+
+            // 验证时间
+            if (timestamp <= System.currentTimeMillis()) {
+                throw new IllegalArgumentException("预约时间必须在未来");
+            }
+
+            // 获取参数
+            Map<String, String> parameters = new HashMap<>();
+            for (ParameterDefinition param : getJobParameters()) {
+                String value = req.getParameter("param_" + param.getName());
+                if (value != null && !value.isEmpty()) {
+                    parameters.put(param.getName(), value);
+                } else if (param.getDefaultParameterValue() != null) {
+                    parameters.put(param.getName(), 
+                                 param.getDefaultParameterValue().getValue().toString());
+                }
+            }
+
+            // 更新任务
+            boolean success = manager.updateScheduledBuild(taskId, timestamp, parameters, description);
+            
+            if (success) {
+                LOGGER.info(String.format("用户 %s 更新了预约构建: %s",
+                        getCurrentUser(), taskId));
+            } else {
+                throw new IllegalStateException("更新预约构建失败");
+            }
+
+            // 重定向回预约构建页面
+            rsp.sendRedirect(".");
+        } catch (Exception e) {
+            LOGGER.warning("更新预约构建失败: " + e.getMessage());
+            throw new ServletException("更新预约构建失败: " + e.getMessage(), e);
         }
     }
 
