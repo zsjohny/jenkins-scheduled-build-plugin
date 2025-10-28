@@ -269,6 +269,41 @@
                 .schedule-type-content.active {
                     display: block;
                 }
+                
+                /* 编辑周期性规则样式 */
+                .edit-schedule-type-option {
+                    flex: 1;
+                    text-align: center;
+                    padding: 15px;
+                    cursor: pointer;
+                    border: 2px solid #e0e0e0;
+                    border-radius: 8px;
+                    transition: all 0.3s ease;
+                    background: white;
+                }
+                
+                .edit-schedule-type-option:hover {
+                    border-color: #4a90e2;
+                    box-shadow: 0 4px 8px rgba(74, 144, 226, 0.1);
+                }
+                
+                .edit-schedule-type-option.active {
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                    color: white;
+                    border-color: #667eea;
+                    box-shadow: 0 6px 12px rgba(102, 126, 234, 0.3);
+                }
+                
+                .edit-schedule-type-content {
+                    display: none;
+                    margin-top: 20px;
+                    animation: fadeIn 0.3s ease-in;
+                }
+                
+                .edit-schedule-type-content.active {
+                    display: block;
+                }
+                
                 .weekday-selector {
                     display: flex;
                     gap: 10px;
@@ -522,15 +557,6 @@
                     }
                 }
                 
-                // 编辑预约：从按钮打开编辑模态框
-                function editScheduledBuildFromButton(button) {
-                    var taskId = button.getAttribute('data-task-id');
-                    var scheduledTime = parseInt(button.getAttribute('data-scheduled-time'));
-                    var description = button.getAttribute('data-description') || '';
-                    var parameters = button.getAttribute('data-parameters') || '';
-                    editScheduledBuild(taskId, scheduledTime, description, parameters);
-                }
-                
                 // 编辑预约：打开编辑模态框
                 function editScheduledBuild(taskId, scheduledTime, description, parameters) {
                     var modal = document.getElementById('editModal');
@@ -548,10 +574,10 @@
                     var datetimeValue = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
                     
                     document.getElementById('editScheduledTime').value = datetimeValue;
-                    document.getElementById('editDescription').value = description;
+                    document.getElementById('editDescription').value = description || '';
                     
                     // 填充参数（如果有）
-                    if (parameters && parameters !== 'null' && parameters !== '') {
+                    if (parameters) {
                         var paramsObj = {};
                         try {
                             // parameters是一个字符串，格式如 "key1=value1, key2=value2"
@@ -596,6 +622,56 @@
                     if (event.target === modal) {
                         closeEditModal();
                     }
+                    var recurringModal = document.getElementById('editRecurringModal');
+                    if (event.target === recurringModal) {
+                        closeEditRecurringModal();
+                    }
+                }
+                
+                // 编辑周期性规则：打开模态框
+                function editRecurringRule(ruleId, scheduleType, description, parameters) {
+                    var modal = document.getElementById('editRecurringModal');
+                    
+                    // 设置规则ID
+                    document.getElementById('editRuleId').value = ruleId;
+                    document.getElementById('editRuleDescription').value = description || '';
+                    
+                    // 设置调度类型
+                    document.getElementById('editScheduleTypeInput').value = scheduleType;
+                    switchEditScheduleType(scheduleType);
+                    
+                    // TODO: 填充参数值（如果需要）
+                    
+                    modal.style.display = 'block';
+                }
+                
+                // 编辑周期性规则：关闭模态框
+                function closeEditRecurringModal() {
+                    document.getElementById('editRecurringModal').style.display = 'none';
+                }
+                
+                // 编辑周期性规则：切换调度类型
+                function switchEditScheduleType(type) {
+                    // 更新选项卡样式
+                    document.querySelectorAll('.edit-schedule-type-option').forEach(function(option) {
+                        option.classList.remove('active');
+                    });
+                    var activeOption = document.querySelector('.edit-schedule-type-option[data-type="' + type + '"]');
+                    if (activeOption) {
+                        activeOption.classList.add('active');
+                    }
+                    
+                    // 更新内容区域
+                    document.querySelectorAll('.edit-schedule-type-content').forEach(function(content) {
+                        content.classList.remove('active');
+                    });
+                    var activeContent = document.getElementById('edit-schedule-' + type.toLowerCase());
+                    if (activeContent) {
+                        activeContent.classList.add('active');
+                    }
+                    
+                    // 更新隐藏的scheduleType字段
+                    document.getElementById('editScheduleTypeInput').value = type;
                 }
                 
                 // 页面加载后立即更新一次
@@ -848,6 +924,11 @@
                                             ${rule.scheduleDescription}
                                         </div>
                                         <div class="rule-actions">
+                                                <button type="button" class="btn-edit" 
+                                                        onclick="editRecurringRule('${rule.id}', '${rule.scheduleType}', '${rule.description}', '${rule.parametersString}')" 
+                                                        title="编辑">
+                                                    ✏️ 编辑
+                                                </button>
                                             <j:if test="${rule.enabled}">
                                                 <form method="post" action="toggleRecurringRule" style="display: inline;">
                                                     <input type="hidden" name="ruleId" value="${rule.id}"/>
@@ -928,11 +1009,7 @@
                                     </td>
                                     <td>
                                                 <button type="button" class="btn-edit" 
-                                                        data-task-id="${task.id}"
-                                                        data-scheduled-time="${task.scheduledTime}"
-                                                        data-description="${task.description}"
-                                                        data-parameters="${task.parametersString}"
-                                                        onclick="editScheduledBuildFromButton(this)">
+                                                        onclick="editScheduledBuild('${task.id}', ${task.scheduledTime}, '${task.description}', '${task.parametersString}')">
                                                     ✏️ 编辑
                                                 </button>
                                         <form method="post" action="cancel" style="display: inline;">
@@ -1029,7 +1106,7 @@
                 <div class="modal-content">
                     <div class="modal-header">
                         <h2>✏️ 编辑预约构建</h2>
-                        <span class="close" onclick="closeEditModal()">&times;</span>
+                        <span class="close" onclick="closeEditModal()">×</span>
                     </div>
                     
                     <f:form method="post" action="update">
@@ -1088,6 +1165,143 @@
                         <f:block>
                             <f:submit value="✓ 更新预约" class="btn-primary"/>
                             <button type="button" class="btn-secondary" onclick="closeEditModal()" 
+                                    style="margin-left: 10px;">取消</button>
+                        </f:block>
+                    </f:form>
+                </div>
+            </div>
+            
+            <!-- 编辑周期性规则模态框 -->
+            <div id="editRecurringModal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>✏️ 编辑周期性规则</h2>
+                        <span class="close" onclick="closeEditRecurringModal()">×</span>
+                    </div>
+                    
+                    <f:form method="post" action="updateRecurringRule">
+                        <input type="hidden" id="editRuleId" name="ruleId" value=""/>
+                        <input type="hidden" id="editScheduleTypeInput" name="scheduleType" value="DAILY"/>
+                        
+                        <!-- 调度类型选择器 -->
+                        <div class="schedule-type-selector">
+                            <div class="edit-schedule-type-option active" data-type="DAILY" onclick="switchEditScheduleType('DAILY')">
+                                <div style="font-size: 24px; margin-bottom: 5px;">📅</div>
+                                <div style="font-weight: 600;">每天</div>
+                            </div>
+                            <div class="edit-schedule-type-option" data-type="WEEKLY" onclick="switchEditScheduleType('WEEKLY')">
+                                <div style="font-size: 24px; margin-bottom: 5px;">📆</div>
+                                <div style="font-weight: 600;">每周</div>
+                            </div>
+                            <div class="edit-schedule-type-option" data-type="MONTHLY" onclick="switchEditScheduleType('MONTHLY')">
+                                <div style="font-size: 24px; margin-bottom: 5px;">🗓️</div>
+                                <div style="font-weight: 600;">每月</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 每天配置 -->
+                        <div id="edit-schedule-daily" class="edit-schedule-type-content active">
+                            <f:entry title="⏰ 执行时间">
+                                <f:textbox name="dailyTime" value="09:00"/>
+                            </f:entry>
+                        </div>
+                        
+                        <!-- 每周配置 -->
+                        <div id="edit-schedule-weekly" class="edit-schedule-type-content">
+                            <f:entry title="📅 选择星期">
+                                <div class="weekday-selector">
+                                    <div class="weekday-option" data-day="1" onclick="toggleWeekDay(1)">
+                                        <input type="checkbox" id="weekDay1" name="weekDay1" style="display:none;"/>
+                                        周一
+                                    </div>
+                                    <div class="weekday-option" data-day="2" onclick="toggleWeekDay(2)">
+                                        <input type="checkbox" id="weekDay2" name="weekDay2" style="display:none;"/>
+                                        周二
+                                    </div>
+                                    <div class="weekday-option" data-day="3" onclick="toggleWeekDay(3)">
+                                        <input type="checkbox" id="weekDay3" name="weekDay3" style="display:none;"/>
+                                        周三
+                                    </div>
+                                    <div class="weekday-option" data-day="4" onclick="toggleWeekDay(4)">
+                                        <input type="checkbox" id="weekDay4" name="weekDay4" style="display:none;"/>
+                                        周四
+                                    </div>
+                                    <div class="weekday-option" data-day="5" onclick="toggleWeekDay(5)">
+                                        <input type="checkbox" id="weekDay5" name="weekDay5" style="display:none;"/>
+                                        周五
+                                    </div>
+                                    <div class="weekday-option" data-day="6" onclick="toggleWeekDay(6)">
+                                        <input type="checkbox" id="weekDay6" name="weekDay6" style="display:none;"/>
+                                        周六
+                                    </div>
+                                    <div class="weekday-option" data-day="7" onclick="toggleWeekDay(7)">
+                                        <input type="checkbox" id="weekDay7" name="weekDay7" style="display:none;"/>
+                                        周日
+                                    </div>
+                                </div>
+                            </f:entry>
+                            
+                            <f:entry title="⏰ 执行时间">
+                                <f:textbox name="weeklyTime" value="09:00"/>
+                            </f:entry>
+                        </div>
+                        
+                        <!-- 每月配置 -->
+                        <div id="edit-schedule-monthly" class="edit-schedule-type-content">
+                            <f:entry title="📆 选择日期">
+                                <f:textbox name="monthDays" value="1"/>
+                            </f:entry>
+                            
+                            <f:entry title="⏰ 执行时间">
+                                <f:textbox name="monthlyTime" value="09:00"/>
+                            </f:entry>
+                        </div>
+                        
+                        <!-- 通用配置 -->
+                        <f:entry title="📄 描述">
+                            <f:textbox id="editRuleDescription" name="recurringDescription" value=""/>
+                        </f:entry>
+                        
+                        <!-- 参数 -->
+                        <j:if test="${!it.jobParameters.isEmpty()}">
+                            <f:section title="🔧 构建参数">
+                                <j:forEach var="param" items="${it.jobParameters}">
+                                    <f:entry title="${param.name}" description="${param.description}">
+                                        <j:choose>
+                                            <j:when test="${param.class.simpleName == 'BooleanParameterDefinition'}">
+                                                <f:checkbox name="recurring_param_${param.name}" 
+                                                           checked="${param.defaultParameterValue.value}"
+                                                           value="true"/>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'ChoiceParameterDefinition'}">
+                                                <f:select name="recurring_param_${param.name}">
+                                                    <j:forEach var="choice" items="${param.choices}">
+                                                        <f:option value="${choice}">${choice}</f:option>
+                                                    </j:forEach>
+                                                </f:select>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'TextParameterDefinition'}">
+                                                <f:textarea name="recurring_param_${param.name}" 
+                                                           value="${param.defaultParameterValue.value}"
+                                                           rows="3"/>
+                                            </j:when>
+                                            <j:when test="${param.class.simpleName == 'PasswordParameterDefinition'}">
+                                                <f:password name="recurring_param_${param.name}" 
+                                                           value="${param.defaultParameterValue.value}"/>
+                                            </j:when>
+                                            <j:otherwise>
+                                                <f:textbox name="recurring_param_${param.name}" 
+                                                          value="${param.defaultParameterValue.value}"/>
+                                            </j:otherwise>
+                                        </j:choose>
+                                    </f:entry>
+                                </j:forEach>
+                            </f:section>
+                        </j:if>
+                        
+                        <f:block>
+                            <f:submit value="✓ 更新规则" class="btn-primary"/>
+                            <button type="button" class="btn-secondary" onclick="closeEditRecurringModal()" 
                                     style="margin-left: 10px;">取消</button>
                         </f:block>
                     </f:form>
