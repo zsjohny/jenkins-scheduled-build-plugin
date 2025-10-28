@@ -522,6 +522,15 @@
                     }
                 }
                 
+                // 编辑预约：从按钮打开编辑模态框
+                function editScheduledBuildFromButton(button) {
+                    var taskId = button.getAttribute('data-task-id');
+                    var scheduledTime = parseInt(button.getAttribute('data-scheduled-time'));
+                    var description = button.getAttribute('data-description') || '';
+                    var parameters = button.getAttribute('data-parameters') || '';
+                    editScheduledBuild(taskId, scheduledTime, description, parameters);
+                }
+                
                 // 编辑预约：打开编辑模态框
                 function editScheduledBuild(taskId, scheduledTime, description, parameters) {
                     var modal = document.getElementById('editModal');
@@ -539,10 +548,10 @@
                     var datetimeValue = year + '-' + month + '-' + day + 'T' + hours + ':' + minutes;
                     
                     document.getElementById('editScheduledTime').value = datetimeValue;
-                    document.getElementById('editDescription').value = description || '';
+                    document.getElementById('editDescription').value = description;
                     
                     // 填充参数（如果有）
-                    if (parameters) {
+                    if (parameters && parameters !== 'null' && parameters !== '') {
                         var paramsObj = {};
                         try {
                             // parameters是一个字符串，格式如 "key1=value1, key2=value2"
@@ -919,7 +928,11 @@
                                     </td>
                                     <td>
                                                 <button type="button" class="btn-edit" 
-                                                        onclick="editScheduledBuild('${task.id}', ${task.scheduledTime}, '${task.description}', '${task.parametersString}')">
+                                                        data-task-id="${task.id}"
+                                                        data-scheduled-time="${task.scheduledTime}"
+                                                        data-description="${task.description}"
+                                                        data-parameters="${task.parametersString}"
+                                                        onclick="editScheduledBuildFromButton(this)">
                                                     ✏️ 编辑
                                                 </button>
                                         <form method="post" action="cancel" style="display: inline;">
