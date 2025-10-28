@@ -124,6 +124,44 @@ public class ScheduledBuildManager extends GlobalConfiguration {
     }
 
     /**
+     * 更新预约构建任务
+     */
+    public synchronized boolean updateScheduledBuild(String taskId, long newScheduledTime, 
+                                                    Map<String, String> newParameters, 
+                                                    String newDescription) {
+        ScheduledBuildTask oldTask = tasks.get(taskId);
+        if (oldTask == null || !oldTask.isPending()) {
+            return false;
+        }
+        
+        // 创建新任务替换旧任务
+        ScheduledBuildTask newTask = new ScheduledBuildTask(
+            oldTask.getJobName(), 
+            newScheduledTime, 
+            newParameters, 
+            newDescription
+        );
+        
+        // 如果是周期性规则生成的任务，保留关联
+        if (oldTask.getRecurringRuleId() != null) {
+            newTask.setRecurringRuleId(oldTask.getRecurringRuleId());
+        }
+        
+        // 替换任务
+        tasks.remove(taskId);
+        tasks.put(newTask.getId(), newTask);
+        
+        // 调度新任务
+        scheduleTask(newTask);
+        
+        // 持久化
+        save();
+        
+        LOGGER.info(String.format("更新预约构建任务: %s -> %s", oldTask, newTask));
+        return true;
+    }
+
+    /**
      * 获取任务
      */
     public ScheduledBuildTask getTask(String taskId) {
