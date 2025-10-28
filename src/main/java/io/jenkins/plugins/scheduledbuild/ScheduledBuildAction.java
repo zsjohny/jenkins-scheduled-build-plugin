@@ -488,6 +488,112 @@ public class ScheduledBuildAction implements Action {
         }
     }
 
+    /**
+     * 更新周期性规则
+     */
+    @POST
+    public void doUpdateRecurringRule(StaplerRequest req, StaplerResponse rsp) 
+            throws IOException, ServletException {
+        
+        checkPermission();
+
+        try {
+            String ruleId = req.getParameter("ruleId");
+            String scheduleType = req.getParameter("scheduleType");
+            String description = req.getParameter("recurringDescription");
+            
+            ScheduledBuildManager manager = ScheduledBuildManager.get();
+            if (manager == null) {
+                throw new IllegalStateException("ScheduledBuildManager 未初始化，请重启 Jenkins");
+            }
+            
+            // 获取原规则
+            RecurringScheduleRule oldRule = manager.getRecurringRule(ruleId);
+            if (oldRule == null) {
+                throw new IllegalArgumentException("规则不存在: " + ruleId);
+            }
+            
+            // 获取构建参数
+            Map<String, String> parameters = new HashMap<>();
+            for (ParameterDefinition param : getJobParameters()) {
+                String value = req.getParameter("recurring_param_" + param.getName());
+                if (value != null && !value.isEmpty()) {
+                    parameters.put(param.getName(), value);
+                } else if (param.getDefaultParameterValue() != null) {
+                    parameters.put(param.getName(), 
+                                 param.getDefaultParameterValue().getValue().toString());
+                }
+            }
+
+            RecurringScheduleRule newRule = null;
+            
+            switch (scheduleType) {
+                case "DAILY":
+                    String dailyTime = req.getParameter("dailyTime");
+                    newRule = RecurringScheduleRule.createDaily(job.getFullName(), dailyTime, parameters, description);
+                    break;
+                    
+                case "WEEKLY":
+                    String weeklyTime = req.getParameter("weeklyTime");
+                    Set<Integer> weekDays = new HashSet<>();
+                    for (int i = 1; i <= 7; i++) {
+                        String dayParam = req.getParameter("weekDay" + i);
+                        if ("on".equals(dayParam) || "true".equals(dayParam)) {
+                            weekDays.add(i);
+                        }
+                    }
+                    if (weekDays.isEmpty()) {
+                        throw new IllegalArgumentException("请至少选择一个星期");
+                    }
+                    newRule = RecurringScheduleRule.createWeekly(job.getFullName(), weekDays, weeklyTime, parameters, description);
+                    break;
+                    
+                case "MONTHLY":
+                    String monthlyTime = req.getParameter("monthlyTime");
+                    String monthDaysStr = req.getParameter("monthDays");
+                    Set<Integer> monthDays = new HashSet<>();
+                    if (monthDaysStr != null && !monthDaysStr.isEmpty()) {
+                        for (String day : monthDaysStr.split(",")) {
+                            try {
+                                int dayNum = Integer.parseInt(day.trim());
+                                if (dayNum >= 1 && dayNum <= 31) {
+                                    monthDays.add(dayNum);
+                                }
+                            } catch (NumberFormatException e) {
+                                // 忽略无效的日期
+                            }
+                        }
+                    }
+                    if (monthDays.isEmpty()) {
+                        throw new IllegalArgumentException("请至少选择一个日期");
+                    }
+                    newRule = RecurringScheduleRule.createMonthly(job.getFullName(), monthDays, monthlyTime, parameters, description);
+                    break;
+                    
+                case "CRON":
+                    String cronExpression = req.getParameter("cronExpression");
+                    newRule = RecurringScheduleRule.createCron(job.getFullName(), cronExpression, parameters, description);
+                    break;
+                    
+                default:
+                    throw new IllegalArgumentException("不支持的调度类型: " + scheduleType);
+            }
+
+            // 删除旧规则并添加新规则
+            manager.removeRecurringRule(ruleId);
+            manager.addRecurringRule(newRule);
+
+            LOGGER.info(String.format("用户 %s 更新了周期性规则: %s -> %s",
+                    getCurrentUser(), oldRule, newRule));
+
+            // 重定向回预约构建页面
+            rsp.sendRedirect(".");
+        } catch (Exception e) {
+            LOGGER.warning("更新周期性规则失败: " + e.getMessage());
+            throw new ServletException("更新周期性规则失败: " + e.getMessage(), e);
+        }
+    }
+
     private void checkPermission() {
         job.checkPermission(Item.BUILD);
     }
