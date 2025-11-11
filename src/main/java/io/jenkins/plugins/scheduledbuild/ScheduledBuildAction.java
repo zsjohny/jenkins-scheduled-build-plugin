@@ -598,6 +598,14 @@ public class ScheduledBuildAction implements Action {
         job.checkPermission(Item.BUILD);
     }
 
+    /**
+     * 检查当前用户是否有BUILD权限
+     * 用于UI层控制按钮显示
+     */
+    public boolean hasPermission() {
+        return job.hasPermission(Item.BUILD);
+    }
+
     private String getCurrentUser() {
         User current = User.current();
         return current != null ? current.getId() : "anonymous";
